@@ -1,0 +1,55 @@
+﻿@model LawFirmManagement.Models.RegisterPendingViewModel
+@{
+    ViewData["Title"] = "Register (Client / Lawyer)";
+}
+
+<h2>Register as Client or Lawyer</h2>
+
+@if (ViewBag.Message != null)
+{
+    <div class="alert alert-success">@ViewBag.Message</div>
+}
+
+<form method="post" asp-action="RegisterPending">
+    <div class="mb-3">
+        <label>Full name</label>
+        <input asp-for="FullName" class="form-control" />
+        <span asp-validation-for="FullName" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label>Email</label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label>Phone</label>
+        <input asp-for="Phone" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Address</label>
+        <input asp-for="Address" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label>Role</label>
+        <select asp-for="Role" class="form-control">
+            <option value="">-- Select Role --</option>
+            <option value="Client">Client</option>
+        </select>
+
+    </div>
+
+    <div class="mb-3">
+        <label>Additional info</label>
+        <input asp-for="AdditionalInfo" class="form-control" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Submit for approval</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

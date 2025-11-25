@@ -1,0 +1,30 @@
+﻿@model List<LawFirmManagement.Models.NotificationItem>
+
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+<h2>Notifications</h2>
+
+<table class="table">
+    <thead><tr><th>Title</th><th>Message</th><th>Created</th><th></th></tr></thead>
+    <tbody>
+        @foreach (var n in Model)
+        {
+            <tr class="@(n.IsRead ? "" : "table-warning")">
+                <td>@n.Title</td>
+                <td>@n.Message</td>
+                <td>@n.CreatedAt.ToLocalTime()</td>
+                <td>
+                    @if (!n.IsRead)
+                    {
+                        <form method="post" asp-action="MarkNotificationRead">
+                            <input type="hidden" name="id" value="@n.Id" />
+                            <button class="btn btn-sm btn-primary">Mark read</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

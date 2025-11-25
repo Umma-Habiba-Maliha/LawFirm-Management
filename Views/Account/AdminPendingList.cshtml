@@ -1,0 +1,41 @@
+﻿@model IEnumerable<LawFirmManagement.Models.PendingUser>
+@{
+    ViewData["Title"] = "Pending Registrations";
+}
+
+<h2>Pending Registrations</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Full name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Requested</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var p in Model)
+        {
+            <tr>
+                <td>@p.FullName</td>
+                <td>@p.Email</td>
+                <td>@p.Role</td>
+                <td>@p.RequestedAt.ToLocalTime()</td>
+                <td>
+                    <form method="post" asp-action="ApprovePending" style="display:inline">
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <button class="btn btn-success btn-sm" type="submit">Approve</button>
+                    </form>
+
+                    <form method="post" asp-action="RejectPending" style="display:inline; margin-left:6px;">
+                        <input type="hidden" name="id" value="@p.Id" />
+                        <input name="reason" placeholder="reason (optional)" class="form-control d-inline" style="width:200px; display:inline-block;" />
+                        <button class="btn btn-danger btn-sm" type="submit">Reject</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
