@@ -1,0 +1,144 @@
+﻿@model LawFirmManagement.Models.CreateLawyerViewModel
+@{
+    ViewData["Title"] = "Register Lawyer";
+}
+
+<style>
+    /* Background Area */
+    .admin-form-wrapper {
+        background-color: #f8f9fa;
+        min-height: 85vh; /* Takes up most of the screen */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 0;
+    }
+
+    /* The White Card */
+    .form-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        width: 100%;
+        max-width: 500px; /* Clean width */
+        border-top: 5px solid #2c3e50; /* Navy Blue Accent */
+    }
+
+        /* Headings */
+        .form-card h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+    /* Labels & Inputs */
+    .form-label {
+        color: #34495e;
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .form-control, .form-select {
+        height: 45px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        transition: border-color 0.2s;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
+        }
+
+    /* Primary Button */
+    .btn-navy {
+        background-color: #2c3e50;
+        border-color: #2c3e50;
+        color: white;
+        height: 45px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.3s;
+    }
+
+        .btn-navy:hover {
+            background-color: #1a252f;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            color: white;
+        }
+
+    /* Cancel Button */
+    .btn-outline-secondary {
+        height: 45px;
+        font-weight: 500;
+    }
+
+    /* Error Text */
+    .text-danger {
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="admin-form-wrapper">
+    <div class="form-card">
+        <h2>Register New Lawyer</h2>
+        <p class="text-center text-muted mb-4">Create an account for a firm employee</p>
+
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3 text-center"></div>
+
+        <form asp-action="CreateLawyer" method="post">
+
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input asp-for="FullName" class="form-control" placeholder="e.g. John Doe" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input asp-for="Email" class="form-control" placeholder="lawyer@firm.com" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Phone Number</label>
+                <input asp-for="Phone" class="form-control" placeholder="+880" />
+            </div>
+
+           
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Specialization</label>
+                    <select asp-for="Specialization" class="form-select">
+                        <option value="">Select...</option>
+                        <option value="Criminal">Criminal</option>
+                        <option value="Civil">Civil</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Family">Family</option>
+                        <option value="Property">Property</option>
+                    </select>
+                    <span asp-validation-for="Specialization" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Date of Joining</label>
+                    <input asp-for="DateOfJoining" type="date" class="form-control" />
+                    <span asp-validation-for="DateOfJoining" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 mt-4">
+                <button class="btn btn-navy" type="submit">Create Lawyer Account</button>
+                <a asp-action="Users" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

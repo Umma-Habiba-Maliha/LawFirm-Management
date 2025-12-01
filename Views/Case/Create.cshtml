@@ -1,0 +1,174 @@
+﻿@model LawFirmManagement.Models.CreateCaseViewModel
+
+@{
+    ViewData["Title"] = "Create New Case";
+}
+
+<style>
+    /* Background Area */
+    .case-form-wrapper {
+        background-color: #f8f9fa;
+        min-height: 85vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 0;
+    }
+
+    /* The White Card */
+    .form-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        width: 100%;
+        max-width: 800px; /* Wider for 2-column layout */
+        border-top: 5px solid #2c3e50; /* Navy Blue Accent */
+    }
+
+        /* Headings */
+        .form-card h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-card hr {
+            margin: 1.5rem 0;
+            border-top: 1px solid #e9ecef;
+            opacity: 1;
+        }
+
+    /* Labels & Inputs */
+    .form-label {
+        color: #34495e;
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: block;
+        font-size: 0.9rem;
+    }
+
+    .form-control, .form-select {
+        height: 48px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-size: 0.95rem;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
+        }
+
+    /* Textarea specific */
+    textarea.form-control {
+        height: auto;
+        min-height: 120px;
+    }
+
+    /* Primary Button */
+    .btn-navy {
+        background-color: #2c3e50;
+        border-color: #2c3e50;
+        color: white;
+        height: 48px;
+        font-weight: 600;
+        border-radius: 6px;
+        padding: 0 30px;
+        transition: all 0.3s;
+    }
+
+        .btn-navy:hover {
+            background-color: #1a252f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            color: white;
+        }
+
+    /* Secondary Button */
+    .btn-outline-cancel {
+        height: 48px;
+        font-weight: 500;
+        color: #7f8c8d;
+        border: 1px solid #bdc3c7;
+        background: white;
+        border-radius: 6px;
+        padding: 0 25px;
+        display: inline-flex;
+        align-items: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+        .btn-outline-cancel:hover {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+</style>
+
+<div class="case-form-wrapper">
+    <div class="form-card">
+        <h2>Create New Case</h2>
+        <p class="text-muted">Enter case details and assign personnel</p>
+        <hr />
+
+        <form asp-action="Create" method="post">
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Case Title</label>
+                    <input asp-for="CaseTitle" class="form-control" placeholder="e.g. Smith vs. Jones" />
+                    <span asp-validation-for="CaseTitle" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Case Type</label>
+                    <select asp-for="CaseType" class="form-select">
+                        <option value="">-- Select Type --</option>
+                        <option value="Civil">Civil Litigation</option>
+                        <option value="Criminal">Criminal Defense</option>
+                        <option value="Family">Family Law</option>
+                        <option value="Corporate">Corporate Law</option>
+                        <option value="Property">Real Estate / Property</option>
+                    </select>
+                    <span asp-validation-for="CaseType" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Assign Client</label>
+                    <select asp-for="ClientId" asp-items="Model.ClientList" class="form-select">
+                        <option value="">-- Select Client --</option>
+                    </select>
+                    <span asp-validation-for="ClientId" class="text-danger small"></span>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Assign Lawyer</label>
+                    <select asp-for="LawyerId" asp-items="Model.LawyerList" class="form-select">
+                        <option value="">-- Select Lawyer --</option>
+                    </select>
+                    <span asp-validation-for="LawyerId" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Case Description</label>
+                <textarea asp-for="Description" class="form-control" placeholder="Enter detailed case notes, background, or initial filing details..."></textarea>
+                <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a asp-action="Index" class="btn btn-outline-cancel">Back to List</a>
+                <button type="submit" class="btn btn-navy">Create Case File</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

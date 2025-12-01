@@ -1,54 +1,154 @@
 ﻿@model LawFirmManagement.Models.RegisterPendingViewModel
+
 @{
     ViewData["Title"] = "Register (Client / Lawyer)";
 }
 
-<h2>Register as Client or Lawyer</h2>
+<style>
+    /* Page Background */
+    .register-wrapper {
+        background-color: #f8f9fa;
+        min-height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 0;
+    }
 
-@if (ViewBag.Message != null)
-{
-    <div class="alert alert-success">@ViewBag.Message</div>
-}
+    /* The White Form Card */
+    .register-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        width: 100%;
+        max-width: 600px; /* Slightly wider than login for better spacing */
+        border-top: 6px solid #2c3e50; /* Navy Blue Accent */
+    }
 
-<form method="post" asp-action="RegisterPending">
-    <div class="mb-3">
-        <label>Full name</label>
-        <input asp-for="FullName" class="form-control" />
-        <span asp-validation-for="FullName" class="text-danger"></span>
+        /* Headings */
+        .register-card h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+    .sub-text {
+        text-align: center;
+        color: #7f8c8d;
+        margin-bottom: 2rem;
+        font-size: 0.95rem;
+    }
+
+    /* Inputs */
+    .form-label {
+        color: #34495e;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        height: 48px;
+        border-radius: 6px;
+        border: 1px solid #dde1e5;
+        font-size: 0.95rem;
+        transition: border-color 0.2s;
+    }
+
+        .form-control:focus {
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 4px rgba(44, 62, 80, 0.1);
+        }
+
+    /* Submit Button */
+    .btn-submit {
+        background-color: #2c3e50;
+        border-color: #2c3e50;
+        color: white;
+        height: 50px;
+        font-weight: 600;
+        font-size: 1rem;
+        border-radius: 6px;
+        width: 100%;
+        margin-top: 1rem;
+        transition: all 0.3s;
+    }
+
+        .btn-submit:hover {
+            background-color: #1a252f;
+            transform: translateY(-2px); /* Subtle lift effect */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+
+    /* Alert Box */
+    .alert-custom {
+        border-radius: 8px;
+        font-size: 0.95rem;
+        border: none;
+        background-color: #d4edda;
+        color: #155724;
+    }
+</style>
+
+<div class="register-wrapper">
+    <div class="register-card">
+        <h2>Join the Firm</h2>
+        <p class="sub-text">Submit your details for administrative approval</p>
+
+        @if (ViewBag.Message != null)
+        {
+            <div class="alert alert-custom alert-success shadow-sm mb-4">
+                <i class="bi bi-check-circle-fill me-2"></i> @ViewBag.Message
+            </div>
+        }
+
+        <form method="post" asp-action="RegisterPending">
+
+            <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input asp-for="FullName" class="form-control" placeholder="e.g. Jane Doe" />
+                <span asp-validation-for="FullName" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Phone Number</label>
+                    <input asp-for="Phone" class="form-control" placeholder="+880" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Role</label>
+                    <select asp-for="Role" class="form-control form-select">
+                        <option value="">-- Select Role --</option>
+                        <option value="Client">Client</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Address</label>
+                <input asp-for="Address" class="form-control" placeholder="Street, City, Zip Code" />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Additional Information</label>
+                <textarea asp-for="AdditionalInfo" class="form-control" rows="3" placeholder="Briefly describe your legal needs..."></textarea>
+            </div>
+
+            <button class="btn btn-submit" type="submit">Submit for Approval</button>
+
+            <div class="text-center mt-3">
+                <a asp-action="Login" class="text-decoration-none text-muted small">Already have an account? Login</a>
+            </div>
+        </form>
     </div>
-
-    <div class="mb-3">
-        <label>Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <div class="mb-3">
-        <label>Phone</label>
-        <input asp-for="Phone" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label>Address</label>
-        <input asp-for="Address" class="form-control" />
-    </div>
-
-    <div class="mb-3">
-        <label>Role</label>
-        <select asp-for="Role" class="form-control">
-            <option value="">-- Select Role --</option>
-            <option value="Client">Client</option>
-        </select>
-
-    </div>
-
-    <div class="mb-3">
-        <label>Additional info</label>
-        <input asp-for="AdditionalInfo" class="form-control" />
-    </div>
-
-    <button class="btn btn-primary" type="submit">Submit for approval</button>
-</form>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

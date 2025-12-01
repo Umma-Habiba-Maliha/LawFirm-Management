@@ -4,69 +4,271 @@
     ViewData["Title"] = "Admin Dashboard";
 }
 
-<h2>Admin Dashboard</h2>
+<style>
+    /* Page Background */
+    .dashboard-container {
+        background-color: #f8f9fa;
+        padding-bottom: 40px;
+    }
 
-<div class="row">
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Total Clients</h5>
-            <h2>@Model.TotalClients</h2>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Total Lawyers</h5>
-            <h2>@Model.TotalLawyers</h2>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Pending Requests</h5>
-            <h2>@Model.PendingRequests</h2>
-            <a class="btn btn-link" asp-controller="Account" asp-action="AdminPendingList">View all</a>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card p-3">
-            <h5>Notifications</h5>
-            <h2>@Model.UnreadNotifications</h2>
-            <a class="btn btn-link" asp-action="Notifications">View all</a>
-        </div>
-    </div>
-</div>
+    .page-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 30px;
+        padding-top: 20px;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 10px;
+    }
 
-<hr />
+    /* --- STATS CARDS --- */
+    .stat-card {
+        background: white;
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
 
-<div class="row mt-3">
-    <div class="col-md-6">
-        <h4>Recent Pending</h4>
-        <table class="table">
-            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Requested</th></tr></thead>
-            <tbody>
-                @foreach (var p in Model.RecentPending)
-                {
-                    <tr>
-                        <td>@p.FullName</td>
-                        <td>@p.Email</td>
-                        <td>@p.Role</td>
-                        <td>@p.RequestedAt.ToLocalTime()</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
 
-    <div class="col-md-6">
-        <h4>Recent Notifications</h4>
-        <ul class="list-group">
-            @foreach (var n in Model.RecentNotifications)
-            {
-                <li class="list-group-item">
-                    <div><strong>@n.Title</strong></div>
-                    <div>@n.Message</div>
-                    <small class="text-muted">@n.CreatedAt.ToLocalTime()</small>
-                </li>
-            }
-        </ul>
+        .stat-card h5 {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .stat-card h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0;
+        }
+
+    /* Color Accents for Cards */
+    .border-clients {
+        border-left: 5px solid #16a085;
+    }
+    /* Teal */
+    .text-clients {
+        color: #16a085;
+    }
+
+    .border-lawyers {
+        border-left: 5px solid #2c3e50;
+    }
+    /* Navy */
+    .text-lawyers {
+        color: #2c3e50;
+    }
+
+    .border-pending {
+        border-left: 5px solid #e74c3c;
+    }
+    /* Red */
+    .text-pending {
+        color: #e74c3c;
+    }
+
+    .border-notify {
+        border-left: 5px solid #f39c12;
+    }
+    /* Orange */
+    .text-notify {
+        color: #f39c12;
+    }
+
+    .card-link {
+        font-size: 0.85rem;
+        text-decoration: none;
+        font-weight: 600;
+        margin-top: 10px;
+        display: inline-block;
+    }
+
+    /* --- RECENT SECTIONS --- */
+    .section-title {
+        color: #34495e;
+        font-weight: 700;
+        font-size: 1.25rem;
+        margin-bottom: 15px;
+    }
+
+    /* Table Styling */
+    .table-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+    }
+
+    .custom-table thead {
+        background-color: #34495e;
+        color: white;
+    }
+
+    .custom-table th {
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: none;
+        padding: 12px 15px;
+    }
+
+    .custom-table td {
+        padding: 12px 15px;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    /* Notification List Styling */
+    .notification-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    .notification-item {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        border-left: 4px solid #f39c12;
+        transition: background-color 0.2s;
+    }
+
+        .notification-item:hover {
+            background-color: #fcfcfc;
+        }
+
+    .notif-title {
+        font-weight: 700;
+        color: #2c3e50;
+        display: block;
+    }
+
+    .notif-msg {
+        color: #7f8c8d;
+        font-size: 0.9rem;
+    }
+
+    .notif-time {
+        font-size: 0.75rem;
+        color: #bdc3c7;
+        margin-top: 5px;
+        display: block;
+    }
+</style>
+
+<div class="dashboard-container">
+    <div class="container">
+        <h2 class="page-title">Admin Dashboard</h2>
+
+        <div class="row g-4 mb-5">
+            <div class="col-md-3">
+                <div class="stat-card p-4 border-clients">
+                    <h5>Total Clients</h5>
+                    <h2 class="text-clients">@Model.TotalClients</h2>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card p-4 border-lawyers">
+                    <h5>Total Lawyers</h5>
+                    <h2 class="text-lawyers">@Model.TotalLawyers</h2>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card p-4 border-pending">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>Pending Requests</h5>
+                            <h2 class="text-pending">@Model.PendingRequests</h2>
+                        </div>
+                        <i class="bi bi-exclamation-circle text-pending fs-4"></i>
+                    </div>
+                    <a class="card-link text-pending" asp-controller="Account" asp-action="AdminPendingList">Review Requests &rarr;</a>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="stat-card p-4 border-notify">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5>Notifications</h5>
+                            <h2 class="text-notify">@Model.UnreadNotifications</h2>
+                        </div>
+                        <i class="bi bi-bell text-notify fs-4"></i>
+                    </div>
+                    <a class="card-link text-notify" asp-action="Notifications">View All &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                <h4 class="section-title">Recent Registration Requests</h4>
+                <div class="table-card">
+                    <table class="table custom-table mb-0 table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Requested</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.RecentPending.Any())
+                            {
+                                @foreach (var p in Model.RecentPending)
+                                {
+                                    <tr>
+                                        <td class="fw-bold">@p.FullName</td>
+                                        <td>@p.Email</td>
+                                        <td><span class="badge bg-secondary">@p.Role</span></td>
+                                        <td class="text-muted">@p.RequestedAt.ToLocalTime().ToString("MMM dd, HH:mm")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No pending requests found.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <h4 class="section-title">Latest Notifications</h4>
+                <ul class="notification-list">
+                    @if (Model.RecentNotifications.Any())
+                    {
+                        @foreach (var n in Model.RecentNotifications)
+                        {
+                            <li class="notification-item">
+                                <span class="notif-title">@n.Title</span>
+                                <span class="notif-msg">@n.Message</span>
+                                <span class="notif-time">@n.CreatedAt.ToLocalTime().ToString("f")</span>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <li class="text-center text-muted py-3">No new notifications.</li>
+                    }
+                </ul>
+            </div>
+        </div>
     </div>
 </div>

@@ -1,13 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using LawFirmManagement.Models;
-using LawFirmManagement.Data;
-using Microsoft.AspNetCore.Identity;
-using LawFirmManagement.Services;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.SignalR;
+﻿using LawFirmManagement.Data;
 using LawFirmManagement.Hubs;
+using LawFirmManagement.Models;
+using LawFirmManagement.Services;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace LawFirmManagement.Controllers
 {
@@ -36,242 +34,171 @@ namespace LawFirmManagement.Controllers
             _hub = hub;
         }
 
-        // -----------------------------------------
-        // LOGIN PAGE
-        // -----------------------------------------
+        // ----------------------------------------------------
+        // CLIENT SELF REGISTER (Pending)
+        // ----------------------------------------------------
         [HttpGet]
-        public IActionResult Login() => View(new LoginViewModel());
+        public IActionResult RegisterPending() => View();
 
         [HttpPost]
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginViewModel vm)
+        public async Task<IActionResult> RegisterPending(RegisterPendingViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(vm);
+            if (!ModelState.IsValid) return View(model);
 
-            var user = await _userManager.FindByEmailAsync(vm.Email);
-            if (user == null)
+            // ... (Existing validation checks remain the same) ...
+            if (await _db.PendingUsers.AnyAsync(x => x.Email == model.Email && !x.IsProcessed))
             {
-                ModelState.AddModelError("", "Invalid email or password.");
-                return View(vm);
+                ModelState.AddModelError("", "This email is already submitted for approval.");
+                return View(model);
             }
 
-            var result = await _signInManager.PasswordSignInAsync(user, vm.Password, false, false);
-
-            if (!result.Succeeded)
+            if (await _userManager.FindByEmailAsync(model.Email) != null)
             {
-                ModelState.AddModelError("", "Invalid email or password.");
-                return View(vm);
+                ModelState.AddModelError("", "Account already exists with this email.");
+                return View(model);
             }
 
-            // Check role and redirect properly
-            if (await _userManager.IsInRoleAsync(user, "Admin"))
-                return RedirectToAction("Index", "AdminDashboard");
-
-            if (await _userManager.IsInRoleAsync(user, "Lawyer"))
-                return RedirectToAction("Index", "LawyerDashboard");
-
-            if (await _userManager.IsInRoleAsync(user, "Client"))
-                return RedirectToAction("Index", "ClientDashboard");
-
-            return RedirectToAction("Index", "Home");
-        }
-
-
-        // LOGOUT
-        // LOGOUT
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
-        {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction("Login", "Account");
-        }
-
-
-        // -----------------------------------------
-        // ADMIN REGISTRATION (only once)
-        // -----------------------------------------
-        [HttpGet]
-        public IActionResult RegisterAdmin() => View();
-
-        [HttpPost]
-        public async Task<IActionResult> RegisterAdmin(string email, string password)
-        {
-            var admins = await _userManager.GetUsersInRoleAsync("Admin");
-            if (admins.Any()) return BadRequest("Admin already exists.");
-
-            var user = new IdentityUser { UserName = email, Email = email };
-            var result = await _userManager.CreateAsync(user, password);
-            if (!result.Succeeded) return BadRequest(result.Errors);
-
-            if (!await _roleManager.RoleExistsAsync("Admin"))
-                await _roleManager.CreateAsync(new IdentityRole("Admin"));
-            await _userManager.AddToRoleAsync(user, "Admin");
-
-            return RedirectToAction(nameof(AdminPendingList));
-        }
-
-        // -----------------------------------------
-        // PENDING REGISTRATION
-        // -----------------------------------------
-        [HttpGet]
-        public IActionResult RegisterPending() => View(new RegisterPendingViewModel());
-
-        [HttpPost]
-        public async Task<IActionResult> RegisterPending(RegisterPendingViewModel vm)
-        {
-            if (!ModelState.IsValid) return View(vm);
-
-            var existingUser = await _userManager.FindByEmailAsync(vm.Email);
-            var existingPending = await _db.PendingUsers.FirstOrDefaultAsync(
-                p => p.Email == vm.Email && !p.IsProcessed);
-
-            if (existingUser != null)
-            {
-                ModelState.AddModelError("", "An account with this email already exists.");
-                return View(vm);
-            }
-            if (existingPending != null)
-            {
-                ModelState.AddModelError("", "A pending request with this email already exists.");
-                return View(vm);
-            }
-
+            // 1. Save the Pending User
             var pending = new PendingUser
             {
-                FullName = vm.FullName,
-                Email = vm.Email,
-                Phone = vm.Phone,
-                Address = vm.Address,
-                Role = vm.Role,
-                AdditionalInfo = vm.AdditionalInfo
+                FullName = model.FullName,
+                Email = model.Email,
+                Phone = model.Phone,
+                Address = model.Address,
+                AdditionalInfo = model.AdditionalInfo,
+                Role = PendingRole.Client
             };
+
             _db.PendingUsers.Add(pending);
-
-            var admins = await _userManager.GetUsersInRoleAsync("Admin");
-            var title = $"New {pending.Role} registration";
-            var message = $"{pending.FullName} ({pending.Email}) requested registration.";
-
-            foreach (var admin in admins)
-            {
-                await _emailSender.SendEmailAsync(admin.Email, title, message);
-                _db.Notifications.Add(new NotificationItem
-                {
-                    Title = title,
-                    Message = message,
-                    ForUserId = admin.Id
-                });
-            }
-
             await _db.SaveChangesAsync();
 
-            await _hub.Clients.All.SendAsync("ReceiveNotification",
-                new { Title = title, Message = message, PendingId = pending.Id });
+            // 2. NEW: Save Notification to Database (So it's not just "Live")
+            var notification = new NotificationItem
+            {
+                Title = "New Registration",
+                Message = $"{pending.FullName} has requested to join.",
+                CreatedAt = DateTime.UtcNow,
+                IsRead = false
+            };
+            _db.Notifications.Add(notification);
+            await _db.SaveChangesAsync();
 
-            ViewBag.Message = "Registration submitted and sent for admin approval.";
-            return View(new RegisterPendingViewModel());
+            // 3. Send SignalR Alert (Live Popup)
+            await _hub.Clients.Group("Admins").SendAsync("NewPendingUser", pending.FullName);
+
+            // 4. Send Email
+            string approveUrl = Url.Action("ApprovePending", "Account", new { id = pending.Id }, Request.Scheme);
+            // REMEMBER: Use your REAL email here
+            await _emailSender.SendEmailAsync("malihahabiba1703@gmail.com", "New Client Request",
+                $"User {pending.FullName} wants to join. <a href='{approveUrl}'>Approve Now</a>");
+
+            TempData["msg"] = "Registration submitted. Admin will approve soon.";
+            return RedirectToAction("RegisterPending");
         }
 
-        // -----------------------------------------
-        // ADMIN PENDING LIST
-        // -----------------------------------------
-        [Authorize(Roles = "Admin")]
+        // ----------------------------------------------------
+        // ADMIN PENDING LIST (Was Missing!)
+        // ----------------------------------------------------
+        [HttpGet]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminPendingList()
         {
-            var list = await _db.PendingUsers
-                        .Where(p => !p.IsProcessed)
-                        .OrderByDescending(p => p.RequestedAt)
-                        .ToListAsync();
-            return View(list);
+            // Looks for Views/Account/AdminPendingList.cshtml
+            var pendingList = await _db.PendingUsers
+                .Where(x => !x.IsProcessed)
+                .OrderByDescending(x => x.RequestedAt)
+                .ToListAsync();
+
+            return View(pendingList);
         }
 
-        // APPROVE
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
+        // ----------------------------------------------------
+        // ADMIN: APPROVE
+        // ----------------------------------------------------
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
         public async Task<IActionResult> ApprovePending(Guid id)
         {
-            var pending = await _db.PendingUsers.FirstOrDefaultAsync(p => p.Id == id);
+            var pending = await _db.PendingUsers.FirstOrDefaultAsync(x => x.Id == id);
             if (pending == null) return NotFound();
+            if (pending.IsProcessed) return Content("Already processed.");
 
-            // 1) Create Identity user with temporary password
-            var user = new IdentityUser { UserName = pending.Email, Email = pending.Email };
-            var tempPassword = "Temp@" + Guid.NewGuid().ToString("N").Substring(0, 8);
-            var createResult = await _userManager.CreateAsync(user, tempPassword);
+            var user = new IdentityUser { UserName = pending.Email, Email = pending.Email, PhoneNumber = pending.Phone };
+            string tempPassword = "Law" + Guid.NewGuid().ToString("N").Substring(0, 8) + "!";
 
-            if (!createResult.Succeeded)
-            {
-                // log errors (in production use ILogger)
-                ModelState.AddModelError("", "Failed to create user: " + string.Join("; ", createResult.Errors.Select(e => e.Description)));
-                return RedirectToAction(nameof(AdminPendingList));
-            }
+            var result = await _userManager.CreateAsync(user, tempPassword);
+            if (!result.Succeeded) return Content("Failed: " + string.Join(", ", result.Errors.Select(e => e.Description)));
 
-            // 2) Ensure role exists and assign
-            var roleName = pending.Role == PendingRole.Client ? "Client" : "Lawyer";
-            if (!await _roleManager.RoleExistsAsync(roleName))
-                await _roleManager.CreateAsync(new IdentityRole(roleName));
-            await _userManager.AddToRoleAsync(user, roleName);
+            // Ensure Role Exists
+            if (!await _roleManager.RoleExistsAsync("Client")) await _roleManager.CreateAsync(new IdentityRole("Client"));
+            await _userManager.AddToRoleAsync(user, "Client");
 
-            // 3) Save profile details in UserProfile table
             var profile = new UserProfile
             {
                 UserId = user.Id,
                 FullName = pending.FullName,
-                Phone = pending.Phone,
                 Address = pending.Address,
-                AdditionalInfo = pending.AdditionalInfo,
-                Role = roleName
+                Phone = pending.Phone,
+                Role = "Client"
             };
             _db.UserProfiles.Add(profile);
 
-            // 4) Mark pending as processed
             pending.IsProcessed = true;
-            pending.AdminNote = $"Approved by {User?.Identity?.Name} on {DateTime.UtcNow}";
-            _db.PendingUsers.Update(pending);
-
-            // 5) Save DB changes (profile + pending)
             await _db.SaveChangesAsync();
 
-            // 6) Send email to approved user with temp password (recommend password reset in prod)
-            var emailBody = $@"
-        <p>Hi {pending.FullName},</p>
-        <p>Your registration has been approved by the admin.</p>
-        <p><b>Login:</b> {pending.Email}</p>
-        <p><b>Temporary password:</b> {tempPassword}</p>
-        <p>Please login and change your password immediately.</p>
-    ";
-            await _emailSender.SendEmailAsync(pending.Email, "Registration Approved - LawFirmManagement", emailBody);
+            await _emailSender.SendEmailAsync(user.Email, "Approved", $"Pass: {tempPassword}");
 
-            // 7) Create notification for admins and push via SignalR
-            var notifTitle = "Registration approved";
-            var notifMessage = $"{pending.FullName} ({pending.Email}) has been approved and account created.";
-            _db.Notifications.Add(new NotificationItem { Title = notifTitle, Message = notifMessage, ForUserId = null });
-            await _db.SaveChangesAsync();
-
-            await _hub.Clients.All.SendAsync("ReceiveNotification", new { Title = notifTitle, Message = notifMessage, UserId = user.Id });
-
-            return RedirectToAction(nameof(AdminPendingList));
+            return RedirectToAction("AdminPendingList");
         }
 
-
-        // REJECT
-        [Authorize(Roles = "Admin")]
-        [HttpPost]
-        public async Task<IActionResult> RejectPending(Guid id, string reason)
+        // ----------------------------------------------------
+        // ADMIN: REJECT
+        // ----------------------------------------------------
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RejectPending(Guid id)
         {
-            var pending = await _db.PendingUsers.FirstOrDefaultAsync(p => p.Id == id);
-            if (pending == null) return NotFound();
+            var pending = await _db.PendingUsers.FirstOrDefaultAsync(x => x.Id == id);
+            if (pending != null)
+            {
+                pending.IsProcessed = true;
+                pending.AdminNote = "Rejected";
+                await _db.SaveChangesAsync();
+                await _emailSender.SendEmailAsync(pending.Email, "Rejected", "Your request was rejected.");
+            }
+            return RedirectToAction("AdminPendingList");
+        }
 
-            pending.IsProcessed = true;
-            pending.AdminNote = $"Rejected: {reason}";
-            _db.PendingUsers.Update(pending);
-            await _db.SaveChangesAsync();
-            
-            await _emailSender.SendEmailAsync(pending.Email, "Rejected",
-                $"Your request was rejected. Reason: {reason}");
+        // ----------------------------------------------------
+        // LOGIN
+        // ----------------------------------------------------
+        [HttpGet]
+        public IActionResult Login() => View();
 
-            return RedirectToAction(nameof(AdminPendingList));
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
+            if (result.Succeeded)
+            {
+                var user = await _userManager.FindByEmailAsync(model.Email);
+                if (await _userManager.IsInRoleAsync(user, "Admin"))
+                    return RedirectToAction("Index", "AdminDashboard");
+
+                return RedirectToAction("Index", "Home");
+            }
+            ModelState.AddModelError("", "Invalid login.");
+            return View(model);
+        }
+
+        // ----------------------------------------------------
+        // LOGOUT (Was Missing!)
+        // ----------------------------------------------------
+        [HttpPost]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+            return RedirectToAction("Index", "Home");
         }
     }
 }

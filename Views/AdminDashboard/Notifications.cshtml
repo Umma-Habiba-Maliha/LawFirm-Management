@@ -4,27 +4,157 @@
     ViewData["Title"] = "Notifications";
 }
 
-<h2>Notifications</h2>
+<style>
+    /* Page Header */
+    .page-header {
+        color: #2c3e50;
+        font-weight: 700;
+        border-left: 5px solid #f39c12; /* Orange accent for Notifications */
+        padding-left: 15px;
+        margin-bottom: 25px;
+    }
 
-<table class="table">
-    <thead><tr><th>Title</th><th>Message</th><th>Created</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var n in Model)
-        {
-            <tr class="@(n.IsRead ? "" : "table-warning")">
-                <td>@n.Title</td>
-                <td>@n.Message</td>
-                <td>@n.CreatedAt.ToLocalTime()</td>
-                <td>
-                    @if (!n.IsRead)
-                    {
-                        <form method="post" asp-action="MarkNotificationRead">
-                            <input type="hidden" name="id" value="@n.Id" />
-                            <button class="btn btn-sm btn-primary">Mark read</button>
-                        </form>
-                    }
-                </td>
-            </tr>
+    /* Notification Card */
+    .notif-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    /* Table Header */
+    .custom-table thead {
+        background-color: #34495e; /* Dark Navy */
+        color: white;
+    }
+
+    .custom-table th {
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 15px;
+    }
+
+    /* Rows */
+    .custom-table td {
+        vertical-align: middle;
+        padding: 15px;
+        color: #34495e;
+        border-bottom: 1px solid #ecf0f1;
+    }
+
+    /* Unread Row Styling - Replaces table-warning */
+    .unread-row {
+        background-color: #fff9e6; /* Very subtle yellow/orange tint */
+        font-weight: 600; /* Bold text for unread */
+        border-left: 4px solid #f39c12; /* Orange indicator on the left */
+    }
+
+        .unread-row td {
+            color: #2c3e50;
         }
-    </tbody>
-</table>
+
+    /* Read Row Styling */
+    .read-row {
+        background-color: white;
+        color: #7f8c8d; /* Muted text for read items */
+        border-left: 4px solid transparent; /* Keeps alignment correct */
+    }
+
+    .timestamp {
+        font-size: 0.85rem;
+        color: #95a5a6;
+    }
+
+    /* Action Button */
+    .btn-mark-read {
+        background-color: white;
+        color: #3498db;
+        border: 1px solid #3498db;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+        .btn-mark-read:hover {
+            background-color: #3498db;
+            color: white;
+        }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="page-header">Notifications</h2>
+        @if (Model.Any(n => !n.IsRead))
+        {
+            <span class="badge bg-warning text-dark shadow-sm">
+                @Model.Count(n => !n.IsRead) Unread
+            </span>
+        }
+    </div>
+
+    <div class="card notif-card">
+        <div class="table-responsive">
+            <table class="table custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 25%">Title</th>
+                        <th style="width: 45%">Message</th>
+                        <th style="width: 20%">Received</th>
+                        <th style="width: 10%">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Any())
+                    {
+                        @foreach (var n in Model)
+                        {
+                            <tr class="@(n.IsRead ? "read-row" : "unread-row")">
+                                <td>
+                                    @if (!n.IsRead)
+                                    {
+                                        <i class="bi bi-circle-fill text-warning me-2" style="font-size: 8px; vertical-align: middle;"></i>
+                                    }
+                                    @n.Title
+                                </td>
+                                <td>@n.Message</td>
+                                <td>
+                                    <span class="timestamp">@n.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")</span>
+                                </td>
+                                <td>
+                                    @if (!n.IsRead)
+                                    {
+                                        <form method="post" asp-action="MarkNotificationRead">
+                                            <input type="hidden" name="id" value="@n.Id" />
+                                            <button class="btn btn-mark-read">
+                                                <i class="bi bi-check2"></i> Mark Read
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small"><i class="bi bi-check2-all"></i> Read</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                                You have no notifications.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

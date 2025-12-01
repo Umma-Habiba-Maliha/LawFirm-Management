@@ -1,0 +1,196 @@
+﻿@model IEnumerable<LawFirmManagement.Models.Case>
+
+@{
+    ViewData["Title"] = "Case Management";
+}
+
+<style>
+    /* Page Header */
+    .page-header {
+        color: #2c3e50;
+        font-weight: 700;
+        border-left: 5px solid #2c3e50;
+        padding-left: 15px;
+    }
+
+    /* Table Container (Card Style) */
+    .table-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+        margin-top: 20px;
+    }
+
+    /* Table Header */
+    .custom-table thead {
+        background-color: #2c3e50; /* Navy Blue */
+        color: white;
+    }
+
+    .custom-table th {
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        border: none;
+        padding: 15px;
+    }
+
+    /* Table Body */
+    .custom-table td {
+        vertical-align: middle;
+        padding: 12px 15px;
+        color: #34495e;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 0.95rem;
+    }
+
+    .custom-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    /* Case Type Badge */
+    .type-badge {
+        background-color: #e8eaeb;
+        color: #5d6d7e;
+        border: 1px solid #d5dbdb;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-closed {
+        background-color: #d6d8d9;
+        color: #1b1e21;
+    }
+
+    /* New Case Button */
+    .btn-create {
+        background-color: #27ae60;
+        color: white;
+        font-weight: 600;
+        border-radius: 5px;
+        padding: 8px 20px;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+    }
+
+        .btn-create:hover {
+            background-color: #219150;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+    .date-text {
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: 600;
+        color: #7f8c8d;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="page-header">Case Management</h2>
+        <a asp-action="Create" class="btn btn-create">
+            <i class="bi bi-plus-lg me-1"></i> New Case
+        </a>
+    </div>
+
+    <div class="card table-card">
+        <div class="table-responsive">
+            <table class="table custom-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Client</th>
+                        <th>Lawyer</th>
+                        <th>Status</th>
+                        <th>Date Filed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                No cases found in the system.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var c in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold text-dark">@c.CaseTitle</td>
+
+                                <td>
+                                    <span class="type-badge">@c.CaseType</span>
+                                </td>
+
+                                <td>@c.Client?.Email</td>
+
+                                <td>
+                                    @if (c.Lawyer != null)
+                                    {
+                                        <span class="text-primary">@c.Lawyer.Email</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Unassigned</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    @if (c.Status == LawFirmManagement.Models.CaseStatus.Pending)
+                                    {
+                                        <span class="status-badge status-pending">Pending</span>
+                                    }
+                                    else if (c.Status == LawFirmManagement.Models.CaseStatus.Active)
+                                    {
+                                        <span class="status-badge status-active">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-closed">Closed</span>
+                                    }
+                                </td>
+
+                                <td>
+                                    <span class="date-text">@c.StartDate.ToShortDateString()</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

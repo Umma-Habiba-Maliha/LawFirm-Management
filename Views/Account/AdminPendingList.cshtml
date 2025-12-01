@@ -3,39 +3,128 @@
     ViewData["Title"] = "Pending Registrations";
 }
 
-<h2>Pending Registrations</h2>
+<style>
+    .page-title {
+        color: #2c3e50;
+        font-weight: 700;
+        border-left: 5px solid #2c3e50; /* Navy accent */
+        padding-left: 15px;
+        margin-bottom: 25px;
+    }
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>Full name</th>
-            <th>Email</th>
-            <th>Role</th>
-            <th>Requested</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var p in Model)
-        {
-            <tr>
-                <td>@p.FullName</td>
-                <td>@p.Email</td>
-                <td>@p.Role</td>
-                <td>@p.RequestedAt.ToLocalTime()</td>
-                <td>
-                    <form method="post" asp-action="ApprovePending" style="display:inline">
-                        <input type="hidden" name="id" value="@p.Id" />
-                        <button class="btn btn-success btn-sm" type="submit">Approve</button>
-                    </form>
+    .card-custom {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden; /* Keeps the header rounded */
+    }
 
-                    <form method="post" asp-action="RejectPending" style="display:inline; margin-left:6px;">
-                        <input type="hidden" name="id" value="@p.Id" />
-                        <input name="reason" placeholder="reason (optional)" class="form-control d-inline" style="width:200px; display:inline-block;" />
-                        <button class="btn btn-danger btn-sm" type="submit">Reject</button>
-                    </form>
-                </td>
-            </tr>
+    .table-custom thead {
+        background-color: #34495e; /* Dark Navy */
+        color: white;
+    }
+
+    .table-custom th {
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        border: none;
+    }
+
+    .table-custom td {
+        vertical-align: middle;
+        font-size: 0.95rem;
+    }
+
+    .role-badge {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .btn-action {
+        border-radius: 5px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-approve {
+        background-color: #27ae60;
+        border-color: #27ae60;
+        color: white;
+    }
+
+        .btn-approve:hover {
+            background-color: #219150;
+            color: white;
         }
-    </tbody>
-</table>
+
+    .btn-reject {
+        background-color: #e74c3c;
+        border-color: #e74c3c;
+        color: white;
+    }
+
+        .btn-reject:hover {
+            background-color: #c0392b;
+            color: white;
+        }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #7f8c8d;
+    }
+</style>
+
+<div class="container mt-4">
+    <h2 class="page-title">Pending Registrations</h2>
+
+    <div class="card card-custom">
+        <div class="card-body p-0">
+
+            @if (!Model.Any())
+            {
+                <div class="empty-state">
+                    <h4>No Pending Requests</h4>
+                    <p>All registration requests have been processed.</p>
+                </div>
+            }
+            else
+            {
+                <table class="table table-hover table-custom mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Requested On</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-bold">@p.FullName</td>
+                                <td>@p.Email</td>
+                                <td>
+                                    <span class="role-badge">@p.Role</span>
+                                </td>
+                                <td class="text-muted small">@p.RequestedAt.ToLocalTime().ToString("g")</td>
+                                <td class="text-end pe-4">
+                                    <a asp-action="ApprovePending" asp-route-id="@p.Id" class="btn btn-sm btn-action btn-approve me-1">Approve</a>
+                                    <a asp-action="RejectPending" asp-route-id="@p.Id" class="btn btn-sm btn-action btn-reject" onclick="return confirm('Reject this user?');">Reject</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>

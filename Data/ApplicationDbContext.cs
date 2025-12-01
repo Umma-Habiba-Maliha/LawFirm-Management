@@ -9,8 +9,32 @@ namespace LawFirmManagement.Data
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opts) : base(opts) { }
 
-        public DbSet<PendingUser> PendingUsers { get; set; } = null!;
-        public DbSet<NotificationItem> Notifications { get; set; } = null!;
-        public DbSet<UserProfile> UserProfiles { get; set; } = null!;
+        public DbSet<PendingUser> PendingUsers { get; set; }
+        public DbSet<UserProfile> UserProfiles { get; set; }
+        public DbSet<NotificationItem> Notifications { get; set; }
+        public DbSet<Case> Cases { get; set; }
+        public DbSet<Hearing> Hearings { get; set; }
+
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            // -----------------------------------------------------
+            // FIX MULTIPLE CASCADE PATHS FOR Case => AspNetUsers
+            // -----------------------------------------------------
+
+            builder.Entity<Case>()
+                .HasOne(c => c.Client)
+                .WithMany() // no navigation from IdentityUser
+                .HasForeignKey(c => c.ClientId)
+                .OnDelete(DeleteBehavior.Restrict);  // FIX
+
+            builder.Entity<Case>()
+                .HasOne(c => c.Lawyer)
+                .WithMany() // no navigation from IdentityUser
+                .HasForeignKey(c => c.LawyerId)
+                .OnDelete(DeleteBehavior.Restrict);  // FIX
+        }
     }
 }

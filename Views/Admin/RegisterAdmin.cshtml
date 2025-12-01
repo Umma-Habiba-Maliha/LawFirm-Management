@@ -1,0 +1,126 @@
+﻿@{
+    ViewData["Title"] = "Register Admin";
+}
+
+<style>
+    /* Background Area */
+    .admin-reg-wrapper {
+        background-color: #f8f9fa;
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 0;
+    }
+
+    /* The White Card */
+    .form-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        width: 100%;
+        max-width: 450px;
+        border-top: 5px solid #c0392b; /* Red Accent for Admin (Critical Role) */
+    }
+
+        /* Headings */
+        .form-card h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            font-size: 1.75rem;
+        }
+
+    .subtitle {
+        text-align: center;
+        color: #7f8c8d;
+        font-size: 0.9rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Labels & Inputs */
+    .form-label {
+        color: #34495e;
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .form-control {
+        height: 48px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        transition: border-color 0.2s;
+    }
+
+        .form-control:focus {
+            border-color: #c0392b; /* Red focus for Admin */
+            box-shadow: 0 0 0 4px rgba(192, 57, 43, 0.1);
+        }
+
+    /* Button */
+    .btn-admin {
+        background-color: #c0392b; /* Red for Admin */
+        border-color: #c0392b;
+        color: white;
+        height: 50px;
+        font-weight: 600;
+        border-radius: 6px;
+        transition: all 0.3s;
+        margin-top: 1rem;
+    }
+
+        .btn-admin:hover {
+            background-color: #a93226;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            color: white;
+        }
+
+    .warning-box {
+        background-color: #fff3cd;
+        border: 1px solid #ffeeba;
+        color: #856404;
+        padding: 10px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+</style>
+
+<div class="admin-reg-wrapper">
+    <div class="form-card">
+        <h2>Register System Admin</h2>
+        <p class="subtitle">Initial System Setup</p>
+
+        <div class="warning-box">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            Use this only for the first administrator account.
+        </div>
+
+        <form method="post" asp-action="RegisterAdmin">
+
+            <div class="mb-3">
+                <label class="form-label">Email Address</label>
+                <input class="form-control" name="email" type="email" placeholder="admin@firm.com" required />
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">Password</label>
+                <input class="form-control" name="password" type="password" placeholder="Strong Admin Password" required />
+            </div>
+
+            <div class="d-grid">
+                <button class="btn btn-admin" type="submit">Initialize Admin Account</button>
+            </div>
+
+            <div class="text-center mt-3">
+                <a asp-controller="Home" asp-action="Index" class="text-muted small text-decoration-none">Cancel and Return Home</a>
+            </div>
+
+        </form>
+    </div>
+</div>

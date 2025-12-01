@@ -4,29 +4,102 @@
     ViewData["Title"] = "Login";
 }
 
-<h2 class="text-center">Login</h2>
+<style>
+    /* Light gray background for the whole page area */
+    .login-wrapper {
+        background-color: #f8f9fa;
+        min-height: 80vh; /* Takes up most of the screen height */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-<form asp-action="Login" method="post" class="mt-4">
+    /* The white box containing the form */
+    .login-card {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05); /* Soft shadow */
+        width: 100%;
+        max-width: 400px; /* Prevents it from getting too wide */
+        border-top: 5px solid #2c3e50; /* Navy blue accent bar at top */
+    }
 
-    <div class="mb-3">
-        <label class="form-label">Email</label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
+    /* Headings */
+    .login-card h2 {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Input fields */
+    .form-control {
+        border-radius: 5px;
+        height: 45px; /* Taller inputs look more modern */
+        border: 1px solid #ced4da;
+    }
+
+    .form-control:focus {
+        border-color: #2c3e50;
+        box-shadow: 0 0 0 0.2rem rgba(44, 62, 80, 0.25);
+    }
+
+    /* The Login Button */
+    .btn-login {
+        background-color: #2c3e50; /* Navy Blue */
+        border-color: #2c3e50;
+        color: white;
+        height: 45px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-login:hover {
+        background-color: #1a252f; /* Darker Navy on hover */
+        border-color: #1a252f;
+    }
+
+    /* The Register Link */
+    .register-link a {
+        color: #2c3e50;
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .register-link a:hover {
+        text-decoration: underline;
+        color: #0d6efd;
+    }
+</style>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <h2 class="text-center">Member Login</h2>
+        <p class="text-center text-muted mb-4">Welcome back to the Firm</p>
+
+        <form asp-action="Login" method="post">
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Email Address</label>
+                <input asp-for="Email" class="form-control" placeholder="name@example.com" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">Password</label>
+                <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-login w-100">Login</button>
+        </form>
+
+        <div class="mt-4 text-center register-link">
+            <span class="text-muted">New Client?</span>
+            <a asp-action="RegisterPending">Create an account here</a>
+        </div>
     </div>
-
-    <div class="mb-3">
-        <label class="form-label">Password</label>
-        <input asp-for="Password" type="password" class="form-control" />
-        <span asp-validation-for="Password" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary w-100">Login</button>
-
-</form>
-
-<div class="mt-3 text-center">
-    <!-- FIX: Send users to custom pending registration page -->
-    <a asp-action="RegisterPending">Create an account?</a>
 </div>
 
 @section Scripts {
