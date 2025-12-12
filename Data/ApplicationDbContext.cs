@@ -14,6 +14,7 @@ namespace LawFirmManagement.Data
         public DbSet<NotificationItem> Notifications { get; set; }
         public DbSet<Case> Cases { get; set; }
         public DbSet<Hearing> Hearings { get; set; }
+        public DbSet<CaseDocument> CaseDocuments { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)

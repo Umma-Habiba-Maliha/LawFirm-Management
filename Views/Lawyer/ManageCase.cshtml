@@ -3,6 +3,7 @@
     ViewData["Title"] = "Manage Case";
 }
 
+<!-- Custom CSS -->
 <style>
     /* Page Background */
     .manage-wrapper {
@@ -63,6 +64,7 @@
         margin-bottom: 15px;
         display: flex;
         align-items: center;
+        margin-top: 20px; /* Spacing between tables */
     }
 
         .section-header i {
@@ -70,13 +72,14 @@
             color: #2c3e50;
         }
 
-    /*css Table Styling */
+    /* Table Styling */
     .table-card {
         background: white;
         border-radius: 10px;
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         overflow: hidden;
         border: none;
+        margin-bottom: 30px;
     }
 
     .custom-table thead {
@@ -98,13 +101,23 @@
         border-bottom: 1px solid #ecf0f1;
     }
 
-    /* Schedule Form Card */
+    /* Schedule Form Card (Green) */
     .schedule-card {
         background: white;
         border-radius: 10px;
         box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         padding: 25px;
-        border-top: 5px solid #27ae60; /* Green Accent */
+        border-top: 5px solid #27ae60;
+        margin-bottom: 25px;
+    }
+
+    /* Upload Form Card (Blue) */
+    .upload-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        padding: 25px;
+        border-top: 5px solid #3498db;
     }
 
     .form-title {
@@ -128,8 +141,8 @@
     }
 
         .form-control:focus {
-            border-color: #27ae60;
-            box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.1);
+            border-color: #2c3e50;
+            box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
         }
 
     /* Buttons */
@@ -161,11 +174,29 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+    .btn-upload {
+        background-color: #3498db;
+        color: white;
+        font-weight: 600;
+        border: none;
+        width: 100%;
+        padding: 10px;
+        border-radius: 5px;
+        transition: all 0.2s;
+    }
+
+        .btn-upload:hover {
+            background-color: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 </style>
 
 <div class="manage-wrapper">
     <div class="container">
 
+        <!-- Header & Status -->
         <div class="d-flex justify-content-between align-items-center case-header">
             <h2 class="case-title">@Model.CaseTitle</h2>
 
@@ -177,6 +208,7 @@
             </form>
         </div>
 
+        <!-- Case Summary Panel -->
         <div class="summary-panel">
             <div class="row">
                 <div class="col-md-4 mb-3 mb-md-0">
@@ -198,17 +230,26 @@
             </div>
         </div>
 
+        <!-- Alerts -->
+        @if (TempData["msg"] != null)
+        {
+            <div class="alert alert-success shadow-sm mb-3">
+                <i class="bi bi-check-circle-fill me-2"></i> @TempData["msg"]
+            </div>
+        }
+        @if (TempData["error"] != null)
+        {
+            <div class="alert alert-danger shadow-sm mb-3">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["error"]
+            </div>
+        }
+
         <div class="row">
+            <!-- Left Column: Tables -->
             <div class="col-lg-8 mb-4">
+
+                <!-- 1. HEARINGS TABLE -->
                 <h4 class="section-header"><i class="bi bi-calendar-event"></i> Hearing Schedule</h4>
-
-                @if (TempData["msg"] != null)
-                {
-                    <div class="alert alert-success shadow-sm mb-3">
-                        <i class="bi bi-check-circle-fill me-2"></i> @TempData["msg"]
-                    </div>
-                }
-
                 <div class="table-card">
                     <div class="table-responsive">
                         <table class="table custom-table mb-0">
@@ -243,12 +284,60 @@
                         </table>
                     </div>
                 </div>
+
+                <!-- 2. DOCUMENTS TABLE (ADDED) -->
+                <h4 class="section-header"><i class="bi bi-file-earmark-text"></i> Case Documents</h4>
+                <div class="table-card">
+                    <div class="table-responsive">
+                        <table class="table custom-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>File Name</th>
+                                    <th>Uploaded By</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (ViewBag.Documents != null && (ViewBag.Documents as List<LawFirmManagement.Models.CaseDocument>).Any())
+                                {
+                                    foreach (var doc in ViewBag.Documents as List<LawFirmManagement.Models.CaseDocument>)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-file-earmark-pdf text-danger me-2"></i>@doc.FileName
+                                            </td>
+                                            <td class="text-muted small">@doc.UploadedBy</td>
+                                            <td class="text-muted small">@doc.UploadedAt.ToShortDateString()</td>
+                                            <td class="text-end">
+                                                <a href="@doc.FilePath" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                    <i class="bi bi-download"></i> Download
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">
+                                            No documents uploaded yet.
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
             </div>
 
+            <!-- Right Column: Action Forms -->
             <div class="col-lg-4">
+
+                <!-- 1. SCHEDULE HEARING FORM -->
                 <div class="schedule-card">
                     <h5 class="form-title">Schedule New Hearing</h5>
-
                     <form asp-action="AddHearing" method="post">
                         <input type="hidden" name="CaseId" value="@Model.Id" />
 
@@ -258,24 +347,40 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">
-                                Court Name
-
-                                [Image of court room]
-                            </label>
+                            <label class="form-label">Court Name</label>
                             <input type="text" name="CourtName" class="form-control" placeholder="e.g. Superior Court Room 4B" required />
                         </div>
 
-                        <div class="mb-4">
+                        <div class="mb-3">
                             <label class="form-label">Notes</label>
-                            <textarea name="Notes" class="form-control" rows="3" placeholder="Additional details..."></textarea>
+                            <textarea name="Notes" class="form-control" rows="2" placeholder="Additional details..."></textarea>
                         </div>
 
-                        <button class="btn btn-add-hearing">
-							<i class="bi bi-plus-circle me-2"></i> Add to Schedule<a href="c:\visualproject\lawfirmmanagement\lawfirm-management\views\lawyer\managecase.cshtml">c:\visualproject\lawfirmmanagement\lawfirm-management\views\lawyer\managecase.cshtml</a>
+                        <button type="submit" class="btn btn-add-hearing">
+                            <i class="bi bi-plus-circle me-2"></i> Add to Schedule
                         </button>
                     </form>
                 </div>
+
+                <!-- 2. UPLOAD DOCUMENT FORM (ADDED) -->
+                <div class="upload-card">
+                    <h5 class="form-title">Upload Document</h5>
+
+                    <form asp-action="UploadDocument" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="caseId" value="@Model.Id" />
+
+                        <div class="mb-3">
+                            <label class="form-label">Select File</label>
+                            <input type="file" name="file" class="form-control" required />
+                            <small class="text-muted mt-1 d-block">PDF, Word, or Images only.</small>
+                        </div>
+
+                        <button class="btn btn-upload">
+                            <i class="bi bi-cloud-upload me-2"></i> Upload File
+                        </button>
+                    </form>
+                </div>
+
             </div>
         </div>
     </div>

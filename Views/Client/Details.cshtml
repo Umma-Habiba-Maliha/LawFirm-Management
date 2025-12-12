@@ -1,0 +1,240 @@
+﻿@model LawFirmManagement.Models.Case
+@{
+    ViewData["Title"] = "Case Details";
+}
+
+<!-- Custom CSS -->
+<style>
+    .detail-wrapper {
+        background-color: #f8f9fa;
+        padding-bottom: 50px;
+        min-height: 90vh;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+        padding-top: 20px;
+        border-bottom: 1px solid #e9ecef;
+        padding-bottom: 15px;
+    }
+
+    .case-title {
+        color: #2c3e50;
+        font-weight: 800;
+        font-size: 1.8rem;
+    }
+
+    .info-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        height: 100%;
+        border: none;
+    }
+
+    .card-label {
+        color: #95a5a6;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        display: block;
+        margin-bottom: 8px;
+        letter-spacing: 0.5px;
+    }
+
+    .section-title {
+        color: #16a085;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+        .section-title i {
+            margin-right: 10px;
+            font-size: 1.3rem;
+        }
+
+    .table-clean {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+        .table-clean th {
+            border-top: none;
+            color: #7f8c8d;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            padding: 12px;
+        }
+
+        .table-clean td {
+            vertical-align: middle;
+            padding: 12px;
+            border-bottom: 1px solid #f1f1f1;
+            color: #2c3e50;
+        }
+
+    .btn-download {
+        background-color: #e8f6f3;
+        color: #16a085;
+        border: 1px solid #16a085;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 5px;
+        padding: 5px 12px;
+        transition: all 0.2s;
+    }
+
+        .btn-download:hover {
+            background-color: #16a085;
+            color: white;
+        }
+
+    .btn-back {
+        border: 1px solid #95a5a6;
+        color: #95a5a6;
+        font-weight: 600;
+        padding: 6px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+        .btn-back:hover {
+            background-color: #95a5a6;
+            color: white;
+        }
+</style>
+
+<div class="detail-wrapper">
+    <div class="container">
+
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center page-header">
+            <div>
+                <h2 class="case-title">@Model.CaseTitle</h2>
+                <span class="badge bg-secondary">@Model.CaseType</span>
+                @if (Model.Status == LawFirmManagement.Models.CaseStatus.Active)
+                {
+                    <span class="badge bg-success ms-2">Active</span>
+                }
+                else
+                {
+
+                    <span class="badge bg-warning text-dark ms-2">@Model.Status</span>
+                }
+            </div>
+            <a asp-action="Index" class="btn-back">Back to Dashboard</a>
+        </div>
+
+        <!-- Case Info Row -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="info-card">
+                    <span class="card-label">Assigned Lawyer</span>
+                    @if (Model.Lawyer != null)
+                    {
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle p-2 me-3 text-center" style="width: 45px; height: 45px;">
+                                <i class="bi bi-person-fill text-muted fs-5"></i>
+                            </div>
+                            <div>
+                                <div class="fw-bold text-dark">@Model.Lawyer.Email</div>
+                                <small class="text-muted">Legal Representative</small>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-muted fst-italic">Pending Assignment</div>
+                    }
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="info-card">
+                    <span class="card-label">Case Description</span>
+                    <p class="text-dark mb-0" style="line-height: 1.6;">@Model.Description</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Row -->
+        <div class="row g-4">
+
+            <!-- LEFT: Hearings -->
+            <div class="col-lg-6">
+                <div class="info-card p-0 overflow-hidden">
+                    <div class="p-4 border-bottom">
+                        <h5 class="section-title mb-0"><i class="bi bi-calendar-check"></i> Hearing Schedule</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-clean">
+                            <thead><tr><th>Date</th><th>Court</th><th>Notes</th></tr></thead>
+                            <tbody>
+                                @if (ViewBag.Hearings != null && (ViewBag.Hearings as List<LawFirmManagement.Models.Hearing>).Any())
+                                {
+                                    foreach (var h in ViewBag.Hearings as List<LawFirmManagement.Models.Hearing>)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@h.HearingDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@h.CourtName</td>
+                                            <td class="text-muted small">@h.Notes</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3" class="text-center py-4 text-muted">No hearings scheduled.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Documents -->
+            <div class="col-lg-6">
+                <div class="info-card p-0 overflow-hidden">
+                    <div class="p-4 border-bottom">
+                        <h5 class="section-title mb-0"><i class="bi bi-file-earmark-text"></i> Case Documents</h5>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-clean">
+                            <thead><tr><th>File Name</th><th>Date</th><th class="text-end">Action</th></tr></thead>
+                            <tbody>
+                                @if (ViewBag.Documents != null && (ViewBag.Documents as List<LawFirmManagement.Models.CaseDocument>).Any())
+                                {
+                                    foreach (var doc in ViewBag.Documents as List<LawFirmManagement.Models.CaseDocument>)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <i class="bi bi-file-pdf text-danger me-2"></i>@doc.FileName
+                                            </td>
+                                            <td class="small text-muted">@doc.UploadedAt.ToString("MMM dd")</td>
+                                            <td class="text-end">
+                                                <a href="@doc.FilePath" target="_blank" class="btn-download">
+                                                    <i class="bi bi-download me-1"></i> Download
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr><td colspan="3" class="text-center py-4 text-muted">No documents uploaded.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+

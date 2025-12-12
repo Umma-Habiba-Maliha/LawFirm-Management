@@ -1,6 +1,10 @@
 ﻿@model IEnumerable<LawFirmManagement.Models.Case>
 @{
     ViewData["Title"] = "Lawyer Dashboard";
+
+    // Split the list logically
+    var pendingCases = Model.Where(c => c.Status == LawFirmManagement.Models.CaseStatus.Pending).ToList();
+    var activeCases = Model.Where(c => c.Status != LawFirmManagement.Models.CaseStatus.Pending).ToList();
 }
 
 <style>
@@ -85,12 +89,58 @@
             color: #95a5a6;
         }
 
+    /* --- NEW REQUEST CARD (Yellow Box) --- */
+    .request-card {
+        background-color: #fff3cd; /* Light Yellow */
+        border: 1px solid #ffeeba;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 5px solid #ffc107;
+    }
+
+    .request-info h5 {
+        margin: 0;
+        color: #856404;
+        font-weight: 700;
+    }
+
+    .request-info p {
+        margin: 5px 0 0 0;
+        font-size: 0.9rem;
+        color: #856404;
+        opacity: 0.9;
+    }
+
+    .btn-accept {
+        background-color: #198754;
+        color: white;
+        font-weight: 600;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 5px;
+        transition: all 0.2s;
+    }
+
+        .btn-accept:hover {
+            background-color: #157347;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            color: white;
+        }
+
     /* --- TABLE STYLING --- */
     .table-section-title {
         color: #34495e;
         font-weight: 700;
         margin-bottom: 15px;
-        margin-top: 10px;
+        margin-top: 30px;
+        display: flex;
+        align-items: center;
     }
 
     .table-card {
@@ -151,11 +201,6 @@
         color: #155724;
     }
 
-    .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-
     .status-closed {
         background-color: #e2e3e5;
         color: #383d41;
@@ -168,6 +213,7 @@
         border-radius: 5px;
         font-size: 0.85rem;
         padding: 6px 15px;
+        text-decoration: none;
         transition: all 0.2s;
     }
 
@@ -183,31 +229,77 @@
     <div class="container">
         <h2 class="page-header">Lawyer Dashboard</h2>
 
+        <!-- 1. STATS ROW -->
         <div class="row mb-5 g-4">
             <div class="col-md-4">
                 <div class="stat-card card-active">
                     <h5>Active Cases</h5>
-                    <h3>@Model.Count(x => x.Status == LawFirmManagement.Models.CaseStatus.Active)</h3>
+                    <h3>@activeCases.Count(x => x.Status == LawFirmManagement.Models.CaseStatus.Active)</h3>
                     <i class="bi bi-play-circle-fill stat-icon"></i>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card card-pending">
-                    <h5>Pending Cases</h5>
-                    <h3>@Model.Count(x => x.Status == LawFirmManagement.Models.CaseStatus.Pending)</h3>
-                    <i class="bi bi-hourglass-split stat-icon"></i>
+                    <h5>New Requests</h5>
+                    <h3>@pendingCases.Count()</h3>
+                    <i class="bi bi-bell-fill stat-icon"></i>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="stat-card card-closed">
                     <h5>Closed Cases</h5>
-                    <h3>@Model.Count(x => x.Status == LawFirmManagement.Models.CaseStatus.Closed)</h3>
+                    <h3>@activeCases.Count(x => x.Status == LawFirmManagement.Models.CaseStatus.Closed)</h3>
                     <i class="bi bi-archive-fill stat-icon"></i>
                 </div>
             </div>
         </div>
 
-        <h4 class="table-section-title">My Assigned Cases</h4>
+        <!-- 2. SUCCESS/ERROR MESSAGES -->
+        @if (TempData["msg"] != null)
+        {
+            <div class="alert alert-success shadow-sm mb-4"><i class="bi bi-check-circle-fill me-2"></i>@TempData["msg"]</div>
+        }
+        @if (TempData["error"] != null)
+        {
+            <div class="alert alert-danger shadow-sm mb-4"><i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["error"]</div>
+        }
+
+        <!-- 3. NEW CASE REQUESTS (PENDING) -->
+        @if (pendingCases.Any())
+        {
+            <h4 class="table-section-title text-warning" style="color:#d35400">
+                <i class="bi bi-exclamation-circle-fill me-2"></i>New Assignments Waiting Approval
+            </h4>
+
+            @foreach (var item in pendingCases)
+            {
+                <div class="request-card">
+                    <div class="request-info">
+                        <h5>@item.CaseTitle</h5>
+                        <p>
+                            <strong>Type:</strong> @item.CaseType |
+                            <strong>Client:</strong> @item.Client?.Email
+                        </p>
+                        <p class="mt-2 text-dark small fst-italic">"@item.Description"</p>
+                    </div>
+                    <div>
+                        <!-- ACCEPT FORM -->
+                        <form asp-action="AcceptCase" method="post">
+                            <input type="hidden" name="id" value="@item.Id" />
+                            <button class="btn btn-accept shadow">
+                                <i class="bi bi-check-lg me-1"></i> Accept Case
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            <hr class="my-5" />
+        }
+
+        <!-- 4. ACTIVE CASELOAD TABLE -->
+        <h4 class="table-section-title">
+            <i class="bi bi-briefcase-fill me-2"></i>My Active Caseload
+        </h4>
 
         <div class="table-card">
             <div class="table-responsive">
@@ -222,9 +314,9 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @if (Model.Any())
+                        @if (activeCases.Any())
                         {
-                            @foreach (var item in Model)
+                            @foreach (var item in activeCases)
                             {
                                 <tr>
                                     <td class="fw-bold">@item.CaseTitle</td>
@@ -235,18 +327,15 @@
                                         {
                                             <span class="status-badge status-active">Active</span>
                                         }
-                                        else if (item.Status == LawFirmManagement.Models.CaseStatus.Pending)
-                                        {
-                                            <span class="status-badge status-pending">Pending</span>
-                                        }
                                         else
                                         {
                                             <span class="status-badge status-closed">Closed</span>
                                         }
                                     </td>
                                     <td class="text-end">
+                                        <!-- MANAGE BUTTON (Only Visible Here) -->
                                         <a asp-action="ManageCase" asp-route-id="@item.Id" class="btn btn-manage">
-                                            Manage Case
+                                            Manage Details
                                         </a>
                                     </td>
                                 </tr>
@@ -257,7 +346,7 @@
                             <tr>
                                 <td colspan="5" class="text-center py-5 text-muted">
                                     <i class="bi bi-folder2-open fs-1 d-block mb-2"></i>
-                                    You have no cases assigned yet.
+                                    You have no active cases. Check "New Requests" above.
                                 </td>
                             </tr>
                         }

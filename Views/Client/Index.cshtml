@@ -1,0 +1,213 @@
+﻿@model IEnumerable<LawFirmManagement.Models.Case>
+@{
+    ViewData["Title"] = "My Dashboard";
+}
+
+<!-- Custom CSS -->
+<style>
+    .client-wrapper {
+        background-color: #f8f9fa;
+        padding-bottom: 50px;
+    }
+
+    .welcome-header {
+        padding: 30px 0;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 30px;
+    }
+
+    .welcome-title {
+        color: #2c3e50;
+        font-weight: 700;
+        font-size: 2rem;
+    }
+
+    /* Stats Cards */
+    .stat-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-left: 5px solid #16a085;
+        height: 100%;
+        transition: transform 0.3s;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+    .stat-label {
+        color: #7f8c8d;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        font-weight: 700;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    .stat-number {
+        color: #16a085;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    /* Table */
+    .table-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+    }
+
+    .custom-table thead {
+        background-color: #16a085;
+        color: white;
+    }
+    /* Teal for Clients */
+    .custom-table th {
+        padding: 15px;
+        font-weight: 600;
+        border: none;
+        font-size: 0.9rem;
+    }
+
+    .custom-table td {
+        padding: 15px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f1f1;
+        color: #34495e;
+    }
+
+    .status-badge {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .status-pending {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .status-closed {
+        background-color: #e2e3e5;
+        color: #383d41;
+    }
+
+    .btn-view {
+        border: 1px solid #16a085;
+        color: #16a085;
+        font-weight: 600;
+        border-radius: 5px;
+        padding: 5px 15px;
+        transition: all 0.2s;
+    }
+
+        .btn-view:hover {
+            background-color: #16a085;
+            color: white;
+        }
+</style>
+
+<div class="client-wrapper">
+    <div class="container">
+
+        <div class="welcome-header">
+            <h2 class="welcome-title">My Dashboard</h2>
+            <p class="text-muted">Track the progress of your legal cases.</p>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="stat-card">
+                    <span class="stat-label">Active Cases</span>
+                    <h2 class="stat-number">@Model.Count(c => c.Status == LawFirmManagement.Models.CaseStatus.Active)</h2>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="stat-card" style="border-color: #f39c12;">
+                    <span class="stat-label" style="color: #f39c12;">Pending Cases</span>
+                    <h2 class="stat-number" style="color: #f39c12;">@Model.Count(c => c.Status == LawFirmManagement.Models.CaseStatus.Pending)</h2>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="mb-3 text-secondary">My Case Files</h4>
+
+        <div class="table-card">
+            <div class="table-responsive">
+                <table class="table custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Case Title</th>
+                            <th>Type</th>
+                            <th>Assigned Lawyer</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="fw-bold">@item.CaseTitle</td>
+                                    <td><span class="badge bg-light text-dark border">@item.CaseType</span></td>
+                                    <td>
+                                        @if (item.Lawyer != null)
+                                        {
+                                            <span class="text-primary"><i class="bi bi-person-fill me-1"></i>@item.Lawyer.Email</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted fst-italic">Unassigned</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.Status == LawFirmManagement.Models.CaseStatus.Active)
+                                        {
+                                            <span class="status-badge status-active">Active</span>
+                                        }
+                                        else if (item.Status == LawFirmManagement.Models.CaseStatus.Pending)
+                                        {
+                                            <span class="status-badge status-pending">Pending</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="status-badge status-closed">Closed</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-view">
+                                            View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-5 text-muted">
+                                    You do not have any cases registered yet.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
