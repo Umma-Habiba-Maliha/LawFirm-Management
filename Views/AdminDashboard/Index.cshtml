@@ -20,43 +20,63 @@
         padding-bottom: 10px;
     }
 
-    /* --- STATS CARDS --- */
+    /* --- FIXED STATS CARD --- */
     .stat-card {
         background: white;
         border: none;
-        border-radius: 10px;
+        border-radius: 12px; /* Slightly rounder */
         box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         height: 100%;
-        position: relative;
-        overflow: hidden;
+        position: relative; /* Anchor for absolute icon */
+        overflow: hidden; /* CRITICAL: Cuts off anything sticking out */
+        padding: 25px;
     }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
 
-        .stat-card h5 {
-            color: #7f8c8d;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            margin-bottom: 10px;
-        }
+    /* Content Wrapper (Z-Index ensures text is ON TOP of icon) */
+    .stat-content {
+        position: relative;
+        z-index: 5;
+    }
 
-        .stat-card h2 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 0;
-        }
+    .stat-card h5 {
+        color: #7f8c8d;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
 
-    /* Color Accents for Cards */
+    .stat-card h2 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        margin-bottom: 0;
+        line-height: 1.2;
+    }
+
+    /* --- THE ICON FIX (Watermark Style) --- */
+    .stat-icon-watermark {
+        position: absolute;
+        top: -10px; /* Moved slightly up */
+        right: -10px; /* Moved slightly right */
+        font-size: 5rem; /* Very Large */
+        opacity: 0.1; /* Very Transparent */
+        z-index: 1; /* Behind text */
+        transform: rotate(15deg); /* Stylish tilt */
+        pointer-events: none; /* Click-through */
+    }
+
+    /* Border & Color Accents */
     .border-clients {
         border-left: 5px solid #16a085;
     }
-    /* Teal */
+
     .text-clients {
         color: #16a085;
     }
@@ -64,7 +84,7 @@
     .border-lawyers {
         border-left: 5px solid #2c3e50;
     }
-    /* Navy */
+
     .text-lawyers {
         color: #2c3e50;
     }
@@ -72,25 +92,27 @@
     .border-pending {
         border-left: 5px solid #e74c3c;
     }
-    /* Red */
+
     .text-pending {
         color: #e74c3c;
     }
 
-    .border-notify {
-        border-left: 5px solid #f39c12;
+    /* Revenue Specifics */
+    .border-revenue {
+        border-left: 5px solid #2ecc71;
     }
-    /* Orange */
-    .text-notify {
-        color: #f39c12;
+
+    .text-revenue {
+        color: #2ecc71;
     }
 
     .card-link {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         text-decoration: none;
-        font-weight: 600;
-        margin-top: 10px;
+        font-weight: 700;
+        margin-top: 15px;
         display: inline-block;
+        text-transform: uppercase;
     }
 
     /* --- RECENT SECTIONS --- */
@@ -110,7 +132,7 @@
     }
 
     .custom-table thead {
-        background-color: #34495e;
+        background-color: #2c3e50;
         color: white;
     }
 
@@ -125,6 +147,10 @@
         padding: 12px 15px;
         font-size: 0.9rem;
         vertical-align: middle;
+    }
+
+    .custom-table tbody tr:hover {
+        background-color: #f8f9fa;
     }
 
     /* Notification List Styling */
@@ -170,49 +196,61 @@
     <div class="container">
         <h2 class="page-title">Admin Dashboard</h2>
 
+        <!-- Stats Row -->
         <div class="row g-4 mb-5">
-            <div class="col-md-3">
-                <div class="stat-card p-4 border-clients">
-                    <h5>Total Clients</h5>
-                    <h2 class="text-clients">@Model.TotalClients</h2>
-                </div>
-            </div>
 
+            <!-- 1. Total Clients -->
             <div class="col-md-3">
-                <div class="stat-card p-4 border-lawyers">
-                    <h5>Total Lawyers</h5>
-                    <h2 class="text-lawyers">@Model.TotalLawyers</h2>
-                </div>
-            </div>
-
-            <div class="col-md-3">
-                <div class="stat-card p-4 border-pending">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h5>Pending Requests</h5>
-                            <h2 class="text-pending">@Model.PendingRequests</h2>
-                        </div>
-                        <i class="bi bi-exclamation-circle text-pending fs-4"></i>
+                <div class="stat-card border-clients">
+                    <i class="bi bi-people-fill stat-icon-watermark text-clients"></i> <!-- Icon moved here -->
+                    <div class="stat-content">
+                        <h5>Total Clients</h5>
+                        <h2 class="text-clients">@Model.TotalClients</h2>
                     </div>
-                    <a class="card-link text-pending" asp-controller="Account" asp-action="AdminPendingList">Review Requests &rarr;</a>
                 </div>
             </div>
 
+            <!-- 2. Total Lawyers -->
             <div class="col-md-3">
-                <div class="stat-card p-4 border-notify">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h5>Notifications</h5>
-                            <h2 class="text-notify">@Model.UnreadNotifications</h2>
-                        </div>
-                        <i class="bi bi-bell text-notify fs-4"></i>
+                <div class="stat-card border-lawyers">
+                    <i class="bi bi-briefcase-fill stat-icon-watermark text-lawyers"></i> <!-- Icon moved here -->
+                    <div class="stat-content">
+                        <h5>Total Lawyers</h5>
+                        <h2 class="text-lawyers">@Model.TotalLawyers</h2>
                     </div>
-                    <a class="card-link text-notify" asp-action="Notifications">View All &rarr;</a>
                 </div>
             </div>
+
+            <!-- 3. Pending Requests -->
+            <div class="col-md-3">
+                <div class="stat-card border-pending">
+                    <i class="bi bi-exclamation-circle-fill stat-icon-watermark text-pending"></i> <!-- Icon moved here -->
+                    <div class="stat-content">
+                        <h5>Pending Requests</h5>
+                        <h2 class="text-pending">@Model.PendingRequests</h2>
+                        <a class="card-link text-pending" asp-controller="Account" asp-action="AdminPendingList">Review Requests &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Total Revenue (FIXED ICON) -->
+            <div class="col-md-3">
+                <div class="stat-card border-revenue">
+                    <!-- Icon is now absolute background, won't push text -->
+                    <i class="bi bi-cash-stack stat-icon-watermark text-revenue"></i>
+
+                    <div class="stat-content">
+                        <h5>Total Revenue</h5>
+                        <h2 class="text-revenue">৳@Model.TotalRevenue</h2>
+                        <a class="card-link text-revenue" asp-controller="Admin" asp-action="Payments">View Financials &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <div class="row">
+            <!-- Left: Recent Pending Table -->
             <div class="col-lg-7 mb-4">
                 <h4 class="section-title">Recent Registration Requests</h4>
                 <div class="table-card">
@@ -249,6 +287,7 @@
                 </div>
             </div>
 
+            <!-- Right: Recent Notifications -->
             <div class="col-lg-5">
                 <h4 class="section-title">Latest Notifications</h4>
                 <ul class="notification-list">

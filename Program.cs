@@ -7,23 +7,28 @@ using LawFirmManagement.Hubs;
 var builder = WebApplication.CreateBuilder(args);
 
 // --------------------------------------
-// DATABASE
+// 1. DATABASE
 // --------------------------------------
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // --------------------------------------
-// IDENTITY
+// 2. IDENTITY (Authentication)
 // --------------------------------------
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 {
+    // Simplified password settings for development
     options.Password.RequireDigit = true;
     options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false; // Easier for testing
+    options.Password.RequireUppercase = false;
+
     options.User.RequireUniqueEmail = true;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+// Configure cookie settings (redirect paths)
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -32,29 +37,30 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // --------------------------------------
-// MVC + SignalR
+// 3. MVC + SignalR (Real-time)
 // --------------------------------------
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 
 // --------------------------------------
-// EMAIL SENDER (SMTP) 
+// 4. CUSTOM SERVICES
 // --------------------------------------
+// Email Sender (For registration emails)
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
-// --------------------------------------
-// NOTIFICATION SERVICE
-// --------------------------------------
+// Notification Service (For alerts)
 builder.Services.AddScoped<NotificationService>();
 
 var app = builder.Build();
 
 // --------------------------------------
-// ROLE SEEDING
+// 5. ROLE SEEDING (Run on Startup)
 // --------------------------------------
 using (var scope = app.Services.CreateScope())
 {
     var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+
+    // Ensure these 3 core roles always exist
     string[] roles = { "Admin", "Lawyer", "Client" };
 
     foreach (var role in roles)
@@ -67,28 +73,32 @@ using (var scope = app.Services.CreateScope())
 }
 
 // --------------------------------------
-// MIDDLEWARE
+// 6. MIDDLEWARE PIPELINE
 // --------------------------------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(); // Critical for serving wwwroot files (CSS, JS, Uploaded Docs)
 
 app.UseRouting();
+
+// Authentication & Authorization must be in this order
 app.UseAuthentication();
 app.UseAuthorization();
 
 // --------------------------------------
-// ROUTING
+// 7. ROUTING ENDPOINTS
 // --------------------------------------
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Map SignalR Hub
 app.MapHub<AdminHub>("/hubs/admin");
 
 app.Run();

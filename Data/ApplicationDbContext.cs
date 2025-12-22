@@ -15,6 +15,7 @@ namespace LawFirmManagement.Data
         public DbSet<Case> Cases { get; set; }
         public DbSet<Hearing> Hearings { get; set; }
         public DbSet<CaseDocument> CaseDocuments { get; set; }
+        public DbSet<Payment> Payments { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)

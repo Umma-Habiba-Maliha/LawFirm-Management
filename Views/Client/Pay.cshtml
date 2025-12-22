@@ -1,0 +1,171 @@
+﻿@model LawFirmManagement.Models.Case
+@{
+    ViewData["Title"] = "Pay Legal Fees";
+    decimal amount = ViewBag.PayableAmount;
+    string stage = ViewBag.PaymentStage;
+}
+
+<style>
+    .payment-wrapper {
+        background: #f8f9fa;
+        min-height: 80vh;
+        padding: 40px 0;
+    }
+
+    .payment-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        overflow: hidden;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+
+    .pay-header {
+        background: #2c3e50;
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .amount-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #2ecc71;
+    }
+
+    .nav-pills .nav-link {
+        color: #555;
+        font-weight: 600;
+        border: 1px solid #eee;
+        margin-bottom: 10px;
+        text-align: left;
+    }
+
+        .nav-pills .nav-link.active {
+            background-color: #2c3e50;
+            color: white;
+            border-color: #2c3e50;
+        }
+
+    .bkash-box {
+        background-color: #e2136e;
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        margin-bottom: 15px;
+    }
+
+    .bkash-input {
+        border: none;
+        border-bottom: 2px solid rgba(255,255,255,0.5);
+        background: transparent;
+        color: white;
+        text-align: center;
+    }
+
+        .bkash-input::placeholder {
+            color: rgba(255,255,255,0.7);
+        }
+
+    .btn-pay {
+        width: 100%;
+        font-weight: 700;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    .btn-bkash {
+        background: white;
+        color: #e2136e;
+    }
+
+    .btn-card {
+        background: #2c3e50;
+        color: white;
+    }
+</style>
+
+<div class="payment-wrapper">
+    <div class="payment-card">
+        <div class="pay-header">
+            <h5 class="opacity-75 text-uppercase ls-1">@stage Payment Due</h5>
+            <div class="amount-display">৳@amount</div>
+            <p class="mb-0 mt-2 text-white-50">Total Case Fee: ৳@Model.TotalFee</p>
+        </div>
+
+        <div class="p-4">
+            <div class="row">
+                <!-- Payment Methods -->
+                <div class="col-md-4">
+                    <div class="nav flex-column nav-pills me-3" id="v-pills-tab" role="tablist">
+                        <button class="nav-link active" id="v-pills-bkash-tab" data-bs-toggle="pill" data-bs-target="#v-pills-bkash" type="button">
+                            <i class="bi bi-wallet2 me-2"></i> bKash
+                        </button>
+                        <button class="nav-link" id="v-pills-card-tab" data-bs-toggle="pill" data-bs-target="#v-pills-card" type="button">
+                            <i class="bi bi-credit-card me-2"></i> Cards
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Forms -->
+                <div class="col-md-8">
+                    <div class="tab-content" id="v-pills-tabContent">
+
+                        <!-- bKash Form -->
+                        <div class="tab-pane fade show active" id="v-pills-bkash">
+                            <form asp-action="ProcessPayment" method="post">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <input type="hidden" name="paymentMethod" value="bKash" />
+                                <!-- CRITICAL: Hidden input for payment stage -->
+                                <input type="hidden" name="paymentStage" value="@stage" />
+
+                                <div class="bkash-box">
+                                    <h5>bKash Payment</h5>
+                                    <p class="small">Enter your account details</p>
+                                    <input type="text" class="form-control bkash-input mb-3" placeholder="017XXXXXXXX" required />
+                                    <input type="password" class="form-control bkash-input" placeholder="PIN" required />
+                                </div>
+                                <button class="btn btn-pay btn-bkash">PAY ৳@amount</button>
+                            </form>
+                        </div>
+
+                        <!-- Card Form -->
+                        <div class="tab-pane fade" id="v-pills-card">
+                            <form asp-action="ProcessPayment" method="post">
+                                <input type="hidden" name="id" value="@Model.Id" />
+                                <!-- CRITICAL: Hidden input for payment stage -->
+                                <input type="hidden" name="paymentStage" value="@stage" />
+
+                                <div class="mb-3">
+                                    <label class="small fw-bold">Card Number</label>
+                                    <input type="text" class="form-control" placeholder="0000 0000 0000 0000" required />
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6"><input type="text" class="form-control" placeholder="MM/YY" required /></div>
+                                    <div class="col-6"><input type="text" class="form-control" placeholder="CVC" required /></div>
+                                </div>
+
+                                <div class="d-flex gap-3 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" value="Visa" checked>
+                                        <label class="form-check-label">Visa</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="paymentMethod" value="MasterCard">
+                                        <label class="form-check-label">MasterCard</label>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-pay btn-card">PAY ৳@amount</button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

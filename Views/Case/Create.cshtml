@@ -4,10 +4,14 @@
     ViewData["Title"] = "Create New Case";
 }
 
+<!-- Custom CSS -->
 <style>
     /* Background Area */
     .case-form-wrapper {
-        background-color: #f8f9fa;
+        background: linear-gradient(rgba(44, 62, 80, 0.85), rgba(44, 62, 80, 0.7)), url('/images/legal-bg.jpg');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
         min-height: 85vh;
         display: flex;
         align-items: center;
@@ -20,9 +24,9 @@
         background: white;
         padding: 2.5rem;
         border-radius: 10px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         width: 100%;
-        max-width: 800px; /* Wider for 2-column layout */
+        max-width: 800px;
         border-top: 5px solid #2c3e50; /* Navy Blue Accent */
     }
 
@@ -33,11 +37,10 @@
             margin-bottom: 0.5rem;
         }
 
-        .form-card hr {
-            margin: 1.5rem 0;
-            border-top: 1px solid #e9ecef;
-            opacity: 1;
-        }
+    .form-section-divider {
+        border-top: 1px solid #e9ecef;
+        margin: 1.5rem 0;
+    }
 
     /* Labels & Inputs */
     .form-label {
@@ -54,6 +57,7 @@
         border: 1px solid #ced4da;
         transition: border-color 0.2s, box-shadow 0.2s;
         font-size: 0.95rem;
+        background-color: #fff;
     }
 
         .form-control:focus, .form-select:focus {
@@ -61,10 +65,19 @@
             box-shadow: 0 0 0 3px rgba(44, 62, 80, 0.15);
         }
 
+        .form-control[readonly] {
+            background-color: #f8f9fa;
+            opacity: 1;
+            cursor: not-allowed;
+            color: #7f8c8d;
+            font-weight: 700;
+        }
+
     /* Textarea specific */
     textarea.form-control {
         height: auto;
         min-height: 120px;
+        resize: vertical;
     }
 
     /* Primary Button */
@@ -77,6 +90,9 @@
         border-radius: 6px;
         padding: 0 30px;
         transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
 
         .btn-navy:hover {
@@ -104,27 +120,45 @@
         .btn-outline-cancel:hover {
             background-color: #ecf0f1;
             color: #2c3e50;
+            border-color: #b0b3b8;
         }
+
+    .input-group-text {
+        background-color: #f1f3f5;
+        border-color: #ced4da;
+        color: #6c757d;
+    }
 </style>
 
 <div class="case-form-wrapper">
     <div class="form-card">
-        <h2>Create New Case</h2>
-        <p class="text-muted">Enter case details and assign personnel</p>
-        <hr />
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Create New Case</h2>
+            <i class="bi bi-folder-plus fs-2 text-muted"></i>
+        </div>
+        <p class="text-muted">Enter case details. Lawyers will be automatically filtered by specialization.</p>
+
+        <!-- Server Error Messages -->
+        <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+        <div class="form-section-divider"></div>
 
         <form asp-action="Create" method="post">
 
+            <!-- Case Info Section -->
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Case Title</label>
-                    <input asp-for="CaseTitle" class="form-control" placeholder="e.g. Smith vs. Jones" />
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input asp-for="CaseTitle" class="form-control" placeholder="e.g. Smith vs. Jones" />
+                    </div>
                     <span asp-validation-for="CaseTitle" class="text-danger small"></span>
                 </div>
 
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Case Type</label>
-                    <select asp-for="CaseType" class="form-select">
+                    <select asp-for="CaseType" class="form-select" id="CaseTypeDropdown">
                         <option value="">-- Select Type --</option>
                         <option value="Civil">Civil Litigation</option>
                         <option value="Criminal">Criminal Defense</option>
@@ -136,6 +170,19 @@
                 </div>
             </div>
 
+            <!-- Fee Section (Auto-Filled) -->
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Total Fee (Fixed by Type)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">৳</span>
+                        <input asp-for="TotalFee" type="number" class="form-control" id="TotalFeeInput" readonly />
+                    </div>
+                    <span asp-validation-for="TotalFee" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <!-- Personnel Section -->
             <div class="row">
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Assign Client</label>
@@ -147,22 +194,31 @@
 
                 <div class="col-md-6 mb-4">
                     <label class="form-label">Assign Lawyer</label>
-                    <select asp-for="LawyerId" asp-items="Model.LawyerList" class="form-select">
-                        <option value="">-- Select Lawyer --</option>
+                    <select asp-for="LawyerId" asp-items="Model.LawyerList" class="form-select" id="LawyerDropdown">
+                        <option value="">-- Select Case Type First --</option>
                     </select>
                     <span asp-validation-for="LawyerId" class="text-danger small"></span>
+                    <small id="LawyerHelp" class="form-text text-muted">Lawyers are filtered based on Case Type.</small>
                 </div>
             </div>
 
+            <!-- Details Section -->
             <div class="mb-4">
                 <label class="form-label">Case Description</label>
-                <textarea asp-for="Description" class="form-control" placeholder="Enter detailed case notes, background, or initial filing details..."></textarea>
+                <textarea asp-for="Description" class="form-control" placeholder="Enter detailed case notes..."></textarea>
                 <span asp-validation-for="Description" class="text-danger small"></span>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <a asp-action="Index" class="btn btn-outline-cancel">Back to List</a>
-                <button type="submit" class="btn btn-navy">Create Case File</button>
+            <div class="form-section-divider"></div>
+
+            <!-- Buttons -->
+            <div class="d-flex justify-content-between align-items-center">
+                <a asp-action="Index" class="btn btn-outline-cancel">
+                    <i class="bi bi-arrow-left me-1"></i> Back to List
+                </a>
+                <button type="submit" class="btn btn-navy">
+                    <i class="bi bi-check2-circle me-2"></i> Create Case File
+                </button>
             </div>
 
         </form>
@@ -171,4 +227,67 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // 1. Capture all lawyers loaded from the server immediately
+            // We clone them so we can restore them later for filtering
+            var allLawyers = $("#LawyerDropdown option").clone();
+
+            // Clear the dropdown initially (force user to pick type first)
+            $("#LawyerDropdown").html('<option value="">-- Select Case Type First --</option>');
+
+            $('#CaseTypeDropdown').change(function() {
+                var selectedType = $(this).val();
+                var feeInput = document.getElementById('TotalFeeInput');
+                var fee = 0;
+
+                // 2. Auto-Fill Fee
+                switch(selectedType) {
+                    case 'Civil': fee = 50000; break;
+                    case 'Criminal': fee = 80000; break;
+                    case 'Family': fee = 30000; break;
+                    case 'Corporate': fee = 120000; break;
+                    case 'Property': fee = 60000; break;
+                }
+                feeInput.value = fee;
+
+                // 3. Filter Lawyers Logic
+                var $lawyerDropdown = $("#LawyerDropdown");
+                $lawyerDropdown.empty(); // Clear current
+
+                if (selectedType) {
+                    var count = 0;
+                    $lawyerDropdown.append('<option value="">-- Select ' + selectedType + ' Lawyer --</option>');
+
+                    allLawyers.each(function() {
+                        var text = $(this).text(); // e.g. "John Doe (Criminal) - [3/5]"
+                        var value = $(this).val();
+
+                        // Logic: Keep if it matches the Type AND isn't full
+                        // Note: The controller puts specializations in parens like (Criminal)
+                        if (text.includes("(" + selectedType + ")")) {
+
+                            // Check if FULL (Controller sends [FULL] or [5/5])
+                            if (text.includes("[FULL]") || text.includes("[5/5]")) {
+                                // Disable fully booked lawyers
+                                $(this).attr('disabled', 'disabled');
+                            }
+
+                            $lawyerDropdown.append($(this));
+                            count++;
+                        }
+                    });
+
+                    if (count === 0) {
+                        $lawyerDropdown.append('<option disabled>No ' + selectedType + ' lawyers available.</option>');
+                    }
+                    $("#LawyerHelp").text("Showing " + count + " specialized lawyers.");
+                } else {
+                    $lawyerDropdown.append('<option value="">-- Select Case Type First --</option>');
+                    $("#LawyerHelp").text("Select Case Type first.");
+                }
+            });
+        });
+    </script>
 }

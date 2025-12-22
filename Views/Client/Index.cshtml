@@ -111,12 +111,28 @@
         border-radius: 5px;
         padding: 5px 15px;
         transition: all 0.2s;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 5px;
     }
 
         .btn-view:hover {
             background-color: #16a085;
             color: white;
         }
+
+    .btn-pay {
+        font-weight: 700;
+        border-radius: 5px;
+        padding: 5px 15px;
+        text-decoration: none;
+        display: block;
+        margin-bottom: 5px;
+        text-align: center;
+        border: none;
+        color: white;
+        font-size: 0.85rem;
+    }
 </style>
 
 <div class="client-wrapper">
@@ -145,6 +161,12 @@
 
         <h4 class="mb-3 text-secondary">My Case Files</h4>
 
+        <!-- MESSAGES -->
+        @if (TempData["msg"] != null)
+        {
+            <div class="alert alert-success shadow-sm mb-3">@TempData["msg"]</div>
+        }
+
         <div class="table-card">
             <div class="table-responsive">
                 <table class="table custom-table mb-0">
@@ -154,7 +176,7 @@
                             <th>Type</th>
                             <th>Assigned Lawyer</th>
                             <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end" style="width: 200px;">Action & Payment</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -189,7 +211,42 @@
                                             <span class="status-badge status-closed">Closed</span>
                                         }
                                     </td>
-                                    <td class="text-end">
+                                    <td class="text-end pe-4">
+                                        <!-- PAYMENT LOGIC START -->
+                                        @if (item.PaymentStatus == "Unpaid")
+                                        {
+                                            <!-- Logic: Can only pay Advance if case is accepted (Active) -->
+                                            @if (item.Status == LawFirmManagement.Models.CaseStatus.Active)
+                                            {
+                                                <a asp-action="Pay" asp-route-id="@item.Id" class="btn-pay bg-danger shadow-sm">
+                                                    <i class="bi bi-credit-card"></i> Pay Advance (20%)
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary mb-1">Wait for Lawyer</span>
+                                            }
+                                        }
+                                        else if (item.PaymentStatus == "AdvancePaid")
+                                        {
+                                            <!-- Logic: Can only pay Final if case is Closed -->
+                                            @if (item.Status == LawFirmManagement.Models.CaseStatus.Closed)
+                                            {
+                                                <a asp-action="Pay" asp-route-id="@item.Id" class="btn-pay bg-warning text-dark shadow-sm">
+                                                    <i class="bi bi-wallet2"></i> Pay Final (80%)
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info text-dark mb-1">Advance Paid</span>
+                                            }
+                                        }
+                                        else if (item.PaymentStatus == "FullyPaid")
+                                        {
+                                            <span class="badge bg-success mb-1">Fully Paid <i class="bi bi-check-circle"></i></span>
+                                        }
+                                        <!-- PAYMENT LOGIC END -->
+
                                         <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-view">
                                             View Details
                                         </a>

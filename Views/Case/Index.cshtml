@@ -4,6 +4,9 @@
     ViewData["Title"] = "Case Management";
 }
 
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css" />
+
 <style>
     /* Page Header */
     .page-header {
@@ -21,6 +24,7 @@
         overflow: hidden;
         border: none;
         margin-top: 20px;
+        padding: 20px; /* Added padding for DataTables controls */
     }
 
     /* Table Header */
@@ -112,6 +116,11 @@
         font-weight: 600;
         color: #7f8c8d;
     }
+
+    /* DataTables Overrides */
+    .dataTables_wrapper .dataTables_length select {
+        padding-right: 25px;
+    }
 </style>
 
 <div class="container mt-4">
@@ -124,7 +133,8 @@
 
     <div class="card table-card">
         <div class="table-responsive">
-            <table class="table custom-table mb-0">
+            <!-- Added id="myTable" for DataTables -->
+            <table id="myTable" class="table custom-table mb-0">
                 <thead>
                     <tr>
                         <th>Title</th>
@@ -136,61 +146,61 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (!Model.Any())
+                    @foreach (var c in Model)
                     {
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                No cases found in the system.
+                            <td class="fw-bold text-dark">@c.CaseTitle</td>
+                            <td>
+                                <span class="type-badge">@c.CaseType</span>
+                            </td>
+                            <td>@c.Client?.Email</td>
+                            <td>
+                                @if (c.Lawyer != null)
+                                {
+                                    <span class="text-primary">@c.Lawyer.Email</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">Unassigned</span>
+                                }
+                            </td>
+                            <td>
+                                @if (c.Status == LawFirmManagement.Models.CaseStatus.Pending)
+                                {
+                                    <span class="status-badge status-pending">Pending</span>
+                                }
+                                else if (c.Status == LawFirmManagement.Models.CaseStatus.Active)
+                                {
+                                    <span class="status-badge status-active">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="status-badge status-closed">Closed</span>
+                                }
+                            </td>
+                            <td>
+                                <!-- Use data-order attribute for proper sorting if needed, or consistent date format -->
+                                <span class="date-text">@c.StartDate.ToString("yyyy-MM-dd")</span>
                             </td>
                         </tr>
-                    }
-                    else
-                    {
-                        @foreach (var c in Model)
-                        {
-                            <tr>
-                                <td class="fw-bold text-dark">@c.CaseTitle</td>
-
-                                <td>
-                                    <span class="type-badge">@c.CaseType</span>
-                                </td>
-
-                                <td>@c.Client?.Email</td>
-
-                                <td>
-                                    @if (c.Lawyer != null)
-                                    {
-                                        <span class="text-primary">@c.Lawyer.Email</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted fst-italic">Unassigned</span>
-                                    }
-                                </td>
-
-                                <td>
-                                    @if (c.Status == LawFirmManagement.Models.CaseStatus.Pending)
-                                    {
-                                        <span class="status-badge status-pending">Pending</span>
-                                    }
-                                    else if (c.Status == LawFirmManagement.Models.CaseStatus.Active)
-                                    {
-                                        <span class="status-badge status-active">Active</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="status-badge status-closed">Closed</span>
-                                    }
-                                </td>
-
-                                <td>
-                                    <span class="date-text">@c.StartDate.ToShortDateString()</span>
-                                </td>
-                            </tr>
-                        }
                     }
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+<!-- Scripts Section -->
+@section Scripts {
+    <!-- JQuery (Usually included in _Layout, but ensuring it's loaded before DataTables) -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="//cdn.datatables.net/2.3.5/js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = new DataTable('#myTable');
+        });
+    </script>
+}

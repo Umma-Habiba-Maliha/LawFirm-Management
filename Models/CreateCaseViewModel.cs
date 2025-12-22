@@ -9,7 +9,7 @@ namespace LawFirmManagement.Models
         public string CaseTitle { get; set; } = "";
 
         [Required]
-        public string CaseType { get; set; } = ""; // Civil, Criminal, etc.
+        public string CaseType { get; set; } = "";
 
         [Required]
         public string Description { get; set; } = "";
@@ -22,7 +22,13 @@ namespace LawFirmManagement.Models
         [Display(Name = "Select Lawyer")]
         public string LawyerId { get; set; } = "";
 
-        // These lists will fill the Dropdowns in the UI
+        // --- NEW PROPERTY (Fixes the Error) ---
+        [Required]
+        [Display(Name = "Total Fee (BDT)")]
+        public decimal TotalFee { get; set; }
+        // -------------------------------------
+
+        // Dropdowns
         public IEnumerable<SelectListItem>? ClientList { get; set; }
         public IEnumerable<SelectListItem>? LawyerList { get; set; }
     }

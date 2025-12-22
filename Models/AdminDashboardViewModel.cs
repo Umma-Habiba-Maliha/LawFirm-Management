@@ -8,6 +8,9 @@ namespace LawFirmManagement.Models
         public int TotalLawyers { get; set; }
         public int PendingRequests { get; set; }
         public int UnreadNotifications { get; set; }
+        // --- NEW PROPERTY ---
+        public decimal TotalRevenue { get; set; }
+
 
         public List<PendingUser> RecentPending { get; set; } = new();
         public List<NotificationItem> RecentNotifications { get; set; } = new();

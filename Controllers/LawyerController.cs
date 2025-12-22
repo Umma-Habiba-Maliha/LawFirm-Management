@@ -6,6 +6,8 @@ using LawFirmManagement.Data;
 using LawFirmManagement.Models;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
+using System.Linq; // Needed for Sum()
+using System.Threading.Tasks;
 
 namespace LawFirmManagement.Controllers
 {
@@ -43,20 +45,28 @@ namespace LawFirmManagement.Controllers
         }
 
         // ----------------------------------------------------
-        // 2. ACCEPT CASE (The "Handshake" Action)
+        // 2. ACCEPT CASE (New Action)
         // ----------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> AcceptCase(Guid id)
         {
             var userId = _userManager.GetUserId(User);
+
+            // Find the case assigned to this lawyer
             var caseObj = await _db.Cases.FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
 
+            // Only accept if it is currently 'Pending'
             if (caseObj != null && caseObj.Status == CaseStatus.Pending)
             {
-                caseObj.Status = CaseStatus.Active; // 1. Flip to Active
+                caseObj.Status = CaseStatus.Active; // Flip to Active
                 await _db.SaveChangesAsync();
-                TempData["msg"] = "Case Accepted! You can now manage details.";
+                TempData["msg"] = "Case accepted successfully. You can now manage it.";
             }
+            else
+            {
+                TempData["error"] = "Could not accept case.";
+            }
+
             return RedirectToAction("Index");
         }
 
@@ -71,7 +81,7 @@ namespace LawFirmManagement.Controllers
                 .Include(c => c.Client)
                 .FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
 
-            if (caseDetails == null) return NotFound();
+            if (caseDetails == null) return NotFound("Case not found or access denied.");
 
             // --- STRICT WORKFLOW CHECK ---
             // If the case is still Pending (Not Accepted), the lawyer CANNOT view details.
@@ -89,7 +99,7 @@ namespace LawFirmManagement.Controllers
         }
 
         // ----------------------------------------------------
-        // 4. UPDATE STATUS (With "Multiple Hearing" Rule)
+        // 4. UPDATE STATUS (With Hearing Validation)
         // ----------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> UpdateStatus(Guid caseId, CaseStatus status)
@@ -97,23 +107,26 @@ namespace LawFirmManagement.Controllers
             var caseObj = await _db.Cases.FindAsync(caseId);
             if (caseObj != null)
             {
-                // CONSTRAINT: Cannot Close without Multiple Hearings
+                // CONSTRAINT CHECK: If trying to Close...
                 if (status == CaseStatus.Closed)
                 {
+                    // Count how many hearings exist for this case
                     int hearingCount = await _db.Hearings.CountAsync(h => h.CaseId == caseId);
 
-                    // "Multiple" means at least 2
+                    // Requirement: "Without multiple hearings (at least 2), case will not close"
                     if (hearingCount < 2)
                     {
-                        TempData["error"] = $"Action Denied: You cannot close a case with only {hearingCount} hearing(s). Multiple hearings are required.";
+                        TempData["error"] = $"Cannot close case! You need multiple hearings. Current: {hearingCount}.";
                         return RedirectToAction("ManageCase", new { id = caseId });
                     }
 
-                    caseObj.EndDate = DateTime.UtcNow; // Auto-set date
+                    // If check passes, set End Date
+                    caseObj.EndDate = DateTime.UtcNow;
                 }
                 else
                 {
-                    caseObj.EndDate = null; // Clear date if re-opening
+                    // If reopening, clear End Date
+                    caseObj.EndDate = null;
                 }
 
                 caseObj.Status = status;
@@ -131,6 +144,8 @@ namespace LawFirmManagement.Controllers
         {
             _db.Hearings.Add(new Hearing { CaseId = CaseId, HearingDate = HearingDate, CourtName = CourtName, Notes = Notes ?? "", ReminderSent = false });
             await _db.SaveChangesAsync();
+
+            TempData["msg"] = "Hearing added.";
             return RedirectToAction("ManageCase", new { id = CaseId });
         }
 
@@ -147,8 +162,32 @@ namespace LawFirmManagement.Controllers
 
                 _db.CaseDocuments.Add(new CaseDocument { CaseId = caseId, FileName = file.FileName, FilePath = "/documents/" + fileName, UploadedBy = User.Identity?.Name });
                 await _db.SaveChangesAsync();
+                TempData["msg"] = "Document uploaded.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
+        }
+
+        // ----------------------------------------------------
+        // 6. VIEW MY EARNINGS (Financial Dashboard)
+        // ----------------------------------------------------
+        [HttpGet]
+        public async Task<IActionResult> Payments()
+        {
+            var userId = _userManager.GetUserId(User);
+
+            // Fetch payments linked to cases where I am the Lawyer
+            // We use .Include to navigate: Payment -> Case -> LawyerId
+            var payments = await _db.Payments
+                .Include(p => p.Case)
+                .Include(p => p.Case.Client)
+                .Where(p => p.Case.LawyerId == userId) // Filter: Only this lawyer's cases
+                .OrderByDescending(p => p.PaymentDate)
+                .ToListAsync();
+
+            // Calculate total earnings (Sum of LawyerShare column)
+            ViewBag.TotalEarnings = payments.Sum(p => p.LawyerShare);
+
+            return View(payments);
         }
     }
 }

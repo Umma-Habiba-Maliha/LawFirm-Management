@@ -29,6 +29,15 @@ namespace LawFirmManagement.Models
 
         public DateTime? EndDate { get; set; }
 
+        // --- NEW PAYMENT FIELDS ---
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalFee { get; set; } = 0.00m;
+
+        // Tracks progress: "Unpaid", "AdvancePaid", "FullyPaid"
+        public string PaymentStatus { get; set; } = "Unpaid";
+        // --------------------------
+
         // Relations
         [Required]
         public string ClientId { get; set; } = "";

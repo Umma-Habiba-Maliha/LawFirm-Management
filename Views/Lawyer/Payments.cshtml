@@ -1,0 +1,184 @@
+﻿@model IEnumerable<LawFirmManagement.Models.Payment>
+@{
+    ViewData["Title"] = "My Earnings";
+}
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css" />
+
+<!-- Custom CSS -->
+<style>
+    .finance-wrapper {
+        background-color: #f8f9fa;
+        padding-bottom: 50px;
+        min-height: 85vh;
+    }
+
+    .page-header {
+        color: #2c3e50;
+        font-weight: 700;
+        border-left: 5px solid #2ecc71; /* Money Green */
+        padding-left: 15px;
+        margin-bottom: 30px;
+        padding-top: 20px;
+    }
+
+    /* Stats Cards */
+    .money-card {
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-left: 5px solid #2ecc71;
+        height: 100%;
+        transition: transform 0.3s;
+    }
+
+        .money-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .money-card h5 {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .money-card h3 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+            color: #2ecc71;
+        }
+
+    /* Table */
+    .table-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+        padding: 20px;
+    }
+
+    .custom-table thead {
+        background-color: #2c3e50;
+        color: white;
+    }
+
+    .custom-table th {
+        padding: 15px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: none;
+    }
+
+    .custom-table td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #34495e;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 0.9rem;
+    }
+
+    .badge-advance {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+    }
+
+    .badge-final {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    /* DataTables Overrides */
+    .dataTables_wrapper .dataTables_length select {
+        padding-right: 25px;
+    }
+</style>
+
+<div class="finance-wrapper">
+    <div class="container">
+        <h2 class="page-header">Financial Overview</h2>
+
+        <!-- Financial Stats -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6">
+                <div class="money-card">
+                    <h5>Total Earnings (My Share)</h5>
+                    <h3>৳@ViewBag.TotalEarnings</h3>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="money-card" style="border-left-color: #3498db;">
+                    <h5 class="text-primary">Total Transactions</h5>
+                    <h3 style="color: #3498db;">@Model.Count()</h3>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="mb-3 text-secondary">Earning History</h4>
+
+        <div class="table-card">
+            <div class="table-responsive">
+                <table id="myTable" class="table custom-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Case Title</th>
+                            <th>Client</th>
+                            <th>Payment Type</th>
+                            <th class="text-end">Client Paid</th>
+                            <th class="text-end text-success">My Cut (90%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <!-- Hidden sort value for proper date sorting -->
+                                    <span style="display:none;">@p.PaymentDate.ToString("yyyyMMddHHmm")</span>
+                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy")
+                                </td>
+                                <td class="fw-bold">@p.Case?.CaseTitle</td>
+                                <td>@p.Case?.Client?.Email</td>
+                                <td>
+                                    @if (p.PaymentType == "Advance")
+                                    {
+                                        <span class="badge badge-advance">Advance (20%)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-final">Final (80%)</span>
+                                    }
+                                </td>
+                                <td class="text-end text-muted">৳@p.TotalAmount</td>
+                                <td class="text-end fw-bold text-success">+ ৳@p.LawyerShare</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- JQuery -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="//cdn.datatables.net/2.3.5/js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = new DataTable('#myTable', {
+                // Optional: Default sort by Date (Column 0) descending
+                order: [[0, 'desc']]
+            });
+        });
+    </script>
+}

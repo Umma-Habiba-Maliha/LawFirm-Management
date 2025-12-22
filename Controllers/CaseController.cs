@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace LawFirmManagement.Controllers
@@ -21,9 +23,7 @@ namespace LawFirmManagement.Controllers
             _userManager = userManager;
         }
 
-        // ---------------------------------------------------------
-        // 1. LIST ALL CASES
-        // ---------------------------------------------------------
+        // 1. LIST CASES
         public async Task<IActionResult> Index()
         {
             var cases = await _db.Cases
@@ -35,9 +35,7 @@ namespace LawFirmManagement.Controllers
             return View(cases);
         }
 
-        // ---------------------------------------------------------
-        // 2. CREATE CASE (GET)
-        // ---------------------------------------------------------
+        // 2. CREATE (GET)
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -46,17 +44,60 @@ namespace LawFirmManagement.Controllers
             return View(model);
         }
 
-        // ---------------------------------------------------------
-        // 3. CREATE CASE (POST)
-        // ---------------------------------------------------------
+        // 3. CREATE (POST)
         [HttpPost]
         public async Task<IActionResult> Create(CreateCaseViewModel model)
         {
+            // 1. Basic Form Validation
             if (!ModelState.IsValid)
             {
-                await LoadDropdowns(model); // Reload lists if validation fails
+                await LoadDropdowns(model);
                 return View(model);
             }
+
+            // ---------------------------------------------------------
+            // LOGIC 1: SPECIALIZATION MATCH
+            // ---------------------------------------------------------
+            var lawyerProfile = await _db.UserProfiles
+                .FirstOrDefaultAsync(u => u.UserId == model.LawyerId);
+
+            if (lawyerProfile == null)
+            {
+                ModelState.AddModelError("LawyerId", "Selected lawyer profile not found.");
+                await LoadDropdowns(model);
+                return View(model);
+            }
+
+            // Compare Case Type vs Lawyer Specialization (Ignore case sensitivity)
+            if (!string.Equals(lawyerProfile.Specialization, model.CaseType, StringComparison.OrdinalIgnoreCase))
+            {
+                ModelState.AddModelError("LawyerId",
+                    $"Mismatch! This case is '{model.CaseType}', but Lawyer {lawyerProfile.FullName} specializes in '{lawyerProfile.Specialization}'.");
+
+                await LoadDropdowns(model);
+                return View(model);
+            }
+
+            // ---------------------------------------------------------
+            // LOGIC 2: WORKLOAD LIMIT (Max 5 Active)
+            // ---------------------------------------------------------
+            int activeCases = await _db.Cases
+                .CountAsync(c => c.LawyerId == model.LawyerId && c.Status != CaseStatus.Closed);
+
+            if (activeCases >= 5)
+            {
+                ModelState.AddModelError("LawyerId",
+                    $"Overloaded! Lawyer {lawyerProfile.FullName} already has {activeCases} active cases. Max limit is 5.");
+
+                await LoadDropdowns(model);
+                return View(model);
+            }
+
+            // ---------------------------------------------------------
+            // LOGIC 3: FIXED FEE ENFORCEMENT
+            // ---------------------------------------------------------
+            // Ensure the fee stored matches the official rate card
+            decimal fixedFee = GetFixedFee(model.CaseType);
 
             var newCase = new Case
             {
@@ -66,7 +107,11 @@ namespace LawFirmManagement.Controllers
                 ClientId = model.ClientId,
                 LawyerId = model.LawyerId,
                 Status = CaseStatus.Pending,
-                StartDate = DateTime.UtcNow
+                StartDate = DateTime.UtcNow,
+
+                // Save values
+                TotalFee = fixedFee,
+                PaymentStatus = "Unpaid"
             };
 
             _db.Cases.Add(newCase);
@@ -75,22 +120,48 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("Index");
         }
 
-        // Helper to load lists
+        // Helper: Get Fixed Fees
+        private decimal GetFixedFee(string caseType)
+        {
+            return caseType switch
+            {
+                "Civil" => 50000m,
+                "Criminal" => 80000m,
+                "Family" => 30000m,
+                "Corporate" => 120000m,
+                "Property" => 60000m,
+                _ => 0m
+            };
+        }
+
+        // Helper: Load Dropdowns with Smart Info
         private async Task LoadDropdowns(CreateCaseViewModel model)
         {
+            // Clients
             var clientUsers = await _userManager.GetUsersInRoleAsync("Client");
-            var lawyerUsers = await _userManager.GetUsersInRoleAsync("Lawyer");
-
             model.ClientList = clientUsers.Select(u => new SelectListItem
             {
                 Value = u.Id,
                 Text = u.Email
             });
 
-            model.LawyerList = lawyerUsers.Select(u => new SelectListItem
+            // Lawyers - Add Specialization and Workload to the dropdown text
+            var lawyers = await _db.UserProfiles
+                .Where(p => p.Role == "Lawyer")
+                .Include(p => p.User)
+                .ToListAsync();
+
+            model.LawyerList = lawyers.Select(p =>
             {
-                Value = u.Id,
-                Text = u.Email
+                // Count active cases for this lawyer
+                int currentLoad = _db.Cases.Count(c => c.LawyerId == p.UserId && c.Status != CaseStatus.Closed);
+
+                return new SelectListItem
+                {
+                    Value = p.UserId,
+                    // Text format: "John Doe (Criminal) [3/5]"
+                    Text = $"{p.FullName} ({p.Specialization}) [{currentLoad}/5]"
+                };
             });
         }
     }
