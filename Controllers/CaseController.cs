@@ -94,7 +94,7 @@ namespace LawFirmManagement.Controllers
             }
 
             // ---------------------------------------------------------
-            // LOGIC 3: FIXED FEE ENFORCEMENT
+            // LOGIC 3: FIXED FEE ENFORCEMENT & ADMIN SHARE
             // ---------------------------------------------------------
             // Ensure the fee stored matches the official rate card
             decimal fixedFee = GetFixedFee(model.CaseType);
@@ -111,7 +111,10 @@ namespace LawFirmManagement.Controllers
 
                 // Save values
                 TotalFee = fixedFee,
-                PaymentStatus = "Unpaid"
+                PaymentStatus = "Unpaid",
+
+                // NEW: Save the custom Admin Share Percentage from the form
+                AdminSharePercentage = model.AdminSharePercentage
             };
 
             _db.Cases.Add(newCase);

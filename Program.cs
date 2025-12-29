@@ -45,11 +45,17 @@ builder.Services.AddSignalR();
 // --------------------------------------
 // 4. CUSTOM SERVICES
 // --------------------------------------
+// HTTP Client (Required for SSLCommerz)
+builder.Services.AddHttpClient();
+
 // Email Sender (For registration emails)
 builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
 
 // Notification Service (For alerts)
 builder.Services.AddScoped<NotificationService>();
+
+// SSLCommerz Service (For Payments)
+builder.Services.AddScoped<SSLCommerzService>();
 
 var app = builder.Build();
 

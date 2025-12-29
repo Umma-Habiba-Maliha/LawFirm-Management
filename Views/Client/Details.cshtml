@@ -78,7 +78,8 @@
             color: #2c3e50;
         }
 
-    .btn-download {
+    /* Improved Download Button for Client */
+    .btn-download-client {
         background-color: #e8f6f3;
         color: #16a085;
         border: 1px solid #16a085;
@@ -87,9 +88,13 @@
         border-radius: 5px;
         padding: 5px 12px;
         transition: all 0.2s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
     }
 
-        .btn-download:hover {
+        .btn-download-client:hover {
             background-color: #16a085;
             color: white;
         }
@@ -122,10 +127,15 @@
                 {
                     <span class="badge bg-success ms-2">Active</span>
                 }
+                else if (Model.Status == LawFirmManagement.Models.CaseStatus.Pending)
+                {
+
+                    <span class="badge bg-warning text-dark ms-2">Pending</span>
+                }
                 else
                 {
 
-                    <span class="badge bg-warning text-dark ms-2">@Model.Status</span>
+                    <span class="badge bg-dark ms-2">Closed</span>
                 }
             </div>
             <a asp-action="Index" class="btn-back">Back to Dashboard</a>
@@ -216,8 +226,10 @@
                                             </td>
                                             <td class="small text-muted">@doc.UploadedAt.ToString("MMM dd")</td>
                                             <td class="text-end">
-                                                <a href="@doc.FilePath" target="_blank" class="btn-download">
-                                                    <i class="bi bi-download me-1"></i> Download
+                                                <!-- FIXED CLIENT DOWNLOAD BUTTON -->
+                                                <!-- Using Url.Content to handle path, removed target blank to encourage direct download -->
+                                                <a asp-action="DownloadDocument" asp-route-id="@doc.Id" class="btn-download-client">
+                                                    <i class="bi bi-download"></i> Download
                                                 </a>
                                             </td>
                                         </tr>
@@ -236,5 +248,3 @@
         </div>
     </div>
 </div>
-
-

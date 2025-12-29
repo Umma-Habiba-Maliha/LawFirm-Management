@@ -26,7 +26,7 @@
         border-radius: 10px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.25);
         width: 100%;
-        max-width: 800px;
+        max-width: 800px; /* Wider layout for the 2-column grid */
         border-top: 5px solid #2c3e50; /* Navy Blue Accent */
     }
 
@@ -170,15 +170,27 @@
                 </div>
             </div>
 
-            <!-- Fee Section (Auto-Filled) -->
+            <!-- Fee Section -->
             <div class="row">
                 <div class="col-md-6 mb-4">
-                    <label class="form-label">Total Fee (Fixed by Type)</label>
+                    <label class="form-label">Total Fee (Fixed)</label>
                     <div class="input-group">
                         <span class="input-group-text">৳</span>
                         <input asp-for="TotalFee" type="number" class="form-control" id="TotalFeeInput" readonly />
                     </div>
                     <span asp-validation-for="TotalFee" class="text-danger small"></span>
+                </div>
+
+                <!-- ADMIN SHARE INPUT (Updated with step="0.01") -->
+                <div class="col-md-6 mb-4">
+                    <label class="form-label">Admin Share (%)</label>
+                    <div class="input-group">
+                        <!-- Added step="0.01" to allow decimals like 2.5 -->
+                        <input asp-for="AdminSharePercentage" type="number" class="form-control" min="0" max="100" step="0.01" placeholder="10.0" />
+                        <span class="input-group-text">%</span>
+                    </div>
+                    <small class="text-muted">Default is 10%. Decimals allowed (e.g. 2.5).</small>
+                    <span asp-validation-for="AdminSharePercentage" class="text-danger small"></span>
                 </div>
             </div>
 
@@ -231,7 +243,6 @@
     <script>
         $(document).ready(function() {
             // 1. Capture all lawyers loaded from the server immediately
-            // We clone them so we can restore them later for filtering
             var allLawyers = $("#LawyerDropdown option").clone();
 
             // Clear the dropdown initially (force user to pick type first)
@@ -261,11 +272,10 @@
                     $lawyerDropdown.append('<option value="">-- Select ' + selectedType + ' Lawyer --</option>');
 
                     allLawyers.each(function() {
-                        var text = $(this).text(); // e.g. "John Doe (Criminal) - [3/5]"
+                        var text = $(this).text();
                         var value = $(this).val();
 
                         // Logic: Keep if it matches the Type AND isn't full
-                        // Note: The controller puts specializations in parens like (Criminal)
                         if (text.includes("(" + selectedType + ")")) {
 
                             // Check if FULL (Controller sends [FULL] or [5/5])

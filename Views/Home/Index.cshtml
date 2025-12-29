@@ -6,7 +6,6 @@
 <style>
     /* --- HERO SECTION --- */
     .hero-section {
-        /* This combines a dark blue overlay with your image */
         background: linear-gradient(rgba(44, 62, 80, 0.85), rgba(44, 62, 80, 0.7)), url('/images/hero-bg.jpg');
         background-size: cover;
         background-position: center;
@@ -31,21 +30,21 @@
 
     .hero-subtitle {
         font-size: 1.25rem;
-        color: #ecf0f1; /* Very light gray */
+        color: #ecf0f1;
         max-width: 700px;
         margin: 0 auto 35px auto;
         line-height: 1.6;
         font-weight: 400;
     }
 
-    /* --- BUTTONS --- */
+    /* Buttons */
     .btn-hero-primary {
-        background-color: #c0392b; /* Professional Red */
+        background-color: #c0392b;
         color: white;
         padding: 14px 35px;
         font-size: 1.1rem;
         font-weight: 700;
-        border-radius: 50px; /* Rounded pill shape */
+        border-radius: 50px;
         text-decoration: none;
         transition: all 0.3s ease;
         border: 2px solid #c0392b;
@@ -96,7 +95,7 @@
 
         .feature-card:hover {
             transform: translateY(-10px);
-            border-bottom-color: #2c3e50; /* Navy Blue Accent on Hover */
+            border-bottom-color: #2c3e50;
             box-shadow: 0 15px 30px rgba(0,0,0,0.1);
         }
 
@@ -131,6 +130,109 @@
         font-size: 1rem;
         line-height: 1.6;
     }
+
+    /* --- LAWYER TEAM SECTION (NEW) --- */
+    .team-section-title {
+        text-align: center;
+        margin-bottom: 50px;
+        margin-top: 80px;
+        font-weight: 800;
+        color: #2c3e50;
+        font-size: 2.5rem;
+        position: relative;
+    }
+
+        .team-section-title::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background: #c0392b;
+            margin: 15px auto 0;
+            border-radius: 2px;
+        }
+
+    .lawyer-card {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        transition: transform 0.3s;
+        text-align: center;
+        height: 100%;
+        border: 1px solid #eee;
+    }
+
+        .lawyer-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.12);
+        }
+
+    .lawyer-img-wrapper {
+        height: 280px;
+        overflow: hidden;
+        background-color: #ecf0f1;
+        position: relative;
+    }
+
+    .lawyer-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top;
+        transition: transform 0.5s;
+    }
+
+    .lawyer-card:hover .lawyer-img {
+        transform: scale(1.05);
+    }
+
+    .lawyer-info {
+        padding: 25px;
+    }
+
+    .lawyer-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 5px;
+    }
+
+    .lawyer-role {
+        color: #c0392b;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 15px;
+        display: block;
+    }
+
+    .lawyer-bio {
+        color: #7f8c8d;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+    }
+
+    .social-links a {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background-color: #f4f6f7;
+        color: #2c3e50;
+        margin: 0 5px;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+
+        .social-links a:hover {
+            background-color: #2c3e50;
+            color: white;
+        }
 </style>
 
 <div class="container">
@@ -139,13 +241,42 @@
     <div class="hero-section">
         <h1 class="hero-title">Law Firm Management</h1>
         <p class="hero-subtitle">
-            A comprehensive, secure solution for managing clients, cases, and legal schedules efficiently. Excellence in every case.
+            A comprehensive solution for managing clients, cases, and legal schedules efficiently and securely.
         </p>
 
-       
+        @if (!User.Identity.IsAuthenticated)
+        {
+            <div>
+                <a asp-controller="Account" asp-action="Login" class="btn-hero-primary">Login Portal</a>
+                <a asp-controller="Account" asp-action="RegisterPending" class="btn-hero-secondary">Join Us</a>
+            </div>
+        }
+        else
+        {
+            <div>
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Home" asp-action="AdminDashboard" class="btn-hero-primary">
+                        <i class="bi bi-speedometer2 me-2"></i>Admin Dashboard
+                    </a>
+                }
+                else if (User.IsInRole("Lawyer"))
+                {
+                    <a asp-controller="Lawyer" asp-action="Index" class="btn-hero-primary">
+                        <i class="bi bi-briefcase-fill me-2"></i>Lawyer Dashboard
+                    </a>
+                }
+                else if (User.IsInRole("Client"))
+                {
+                    <a asp-controller="Client" asp-action="Index" class="btn-hero-primary">
+                        <i class="bi bi-person-circle me-2"></i>Client Portal
+                    </a>
+                }
+            </div>
+        }
     </div>
 
-    <!-- Feature Cards -->
+    <!-- Features Grid -->
     <div class="row g-4 mb-5">
         <div class="col-md-4">
             <div class="feature-card">
@@ -154,7 +285,7 @@
                 </div>
                 <h4 class="feature-title">Client Management</h4>
                 <p class="feature-text">
-                    Streamlined registration and record-keeping for all client interactions and history in one secure place.
+                    Streamlined registration and record-keeping for all client interactions and history.
                 </p>
             </div>
         </div>
@@ -165,7 +296,7 @@
                 </div>
                 <h4 class="feature-title">Case Tracking</h4>
                 <p class="feature-text">
-                    Monitor case status in real-time, assign dedicated lawyers, and track progress from initiation to closing.
+                    Monitor case status, assign lawyers, and track progress from initiation to closing.
                 </p>
             </div>
         </div>
@@ -176,9 +307,72 @@
                 </div>
                 <h4 class="feature-title">Schedule Hearings</h4>
                 <p class="feature-text">
-                    Never miss a court date. Integrated hearing schedules, reminders, and automated notifications.
+                    Never miss a court date with integrated hearing schedules and notifications.
                 </p>
             </div>
         </div>
     </div>
+
+    <!-- NEW SECTION: MEET OUR LAWYERS -->
+    <h2 class="team-section-title">Meet Our Experts</h2>
+
+    <div class="row g-4 mb-5">
+        <!-- Lawyer 1 -->
+        <div class="col-md-4">
+            <div class="lawyer-card">
+                <div class="lawyer-img-wrapper">
+                    <img src="https://img.freepik.com/free-photo/portrait-successful-man-having-stubble-posing-with-broad-smile-keeping-arms-folded_171337-1267.jpg" alt="Lawyer" class="lawyer-img">
+                </div>
+                <div class="lawyer-info">
+                    <h4 class="lawyer-name">Robert H. Specter</h4>
+                    <span class="lawyer-role">Corporate Law</span>
+                    <p class="lawyer-bio">Specializing in corporate mergers and intellectual property rights with over 15 years of experience.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                        <a href="#"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#"><i class="bi bi-envelope-fill"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lawyer 2 -->
+        <div class="col-md-4">
+            <div class="lawyer-card">
+                <div class="lawyer-img-wrapper">
+                    <img src="https://img.freepik.com/free-photo/businesswoman-posing_23-2148142838.jpg" alt="Lawyer" class="lawyer-img">
+                </div>
+                <div class="lawyer-info">
+                    <h4 class="lawyer-name">Jessica Pearson</h4>
+                    <span class="lawyer-role">Criminal Defense</span>
+                    <p class="lawyer-bio">A fierce litigator known for her strategic approach in high-stakes criminal defense cases.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                        <a href="#"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#"><i class="bi bi-envelope-fill"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lawyer 3 -->
+        <div class="col-md-4">
+            <div class="lawyer-card">
+                <div class="lawyer-img-wrapper">
+                    <img src="https://img.freepik.com/free-photo/waist-up-portrait-handsome-serious-unshaven-male-keeps-hands-together-dressed-dark-blue-shirt-has-talk-with-interlocutor-stands-against-white-wall-self-confident-man-freelancer_273609-16320.jpg" alt="Lawyer" class="lawyer-img">
+                </div>
+                <div class="lawyer-info">
+                    <h4 class="lawyer-name">Louis Litt</h4>
+                    <span class="lawyer-role">Civil Litigation</span>
+                    <p class="lawyer-bio">Expert in civil disputes and family law, dedicated to finding equitable resolutions for all clients.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="bi bi-linkedin"></i></a>
+                        <a href="#"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#"><i class="bi bi-envelope-fill"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>

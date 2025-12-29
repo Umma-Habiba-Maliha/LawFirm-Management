@@ -99,6 +99,7 @@
         padding: 12px 15px;
         color: #34495e;
         border-bottom: 1px solid #ecf0f1;
+        font-size: 0.95rem;
     }
 
     /* Schedule Form Card (Green) */
@@ -191,6 +192,39 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+    .closed-alert {
+        background-color: #e9ecef;
+        border: 1px solid #dee2e6;
+        color: #495057;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    /* --- NEW DOWNLOAD BUTTON STYLE --- */
+    .btn-download-link {
+        color: #2c3e50;
+        border: 1px solid #dde1e5;
+        background-color: #fff;
+        padding: 6px 15px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+        .btn-download-link:hover {
+            background-color: #3498db;
+            border-color: #3498db;
+            color: white;
+            box-shadow: 0 2px 5px rgba(52, 152, 219, 0.3);
+        }
 </style>
 
 <div class="manage-wrapper">
@@ -250,7 +284,7 @@
 
                 <!-- 1. HEARINGS TABLE -->
                 <h4 class="section-header"><i class="bi bi-calendar-event"></i> Hearing Schedule</h4>
-                <div class="table-card">
+                <div class="table-card mb-5">
                     <div class="table-responsive">
                         <table class="table custom-table mb-0">
                             <thead>
@@ -285,7 +319,7 @@
                     </div>
                 </div>
 
-                <!-- 2. DOCUMENTS TABLE (ADDED) -->
+                <!-- 2. DOCUMENTS TABLE -->
                 <h4 class="section-header"><i class="bi bi-file-earmark-text"></i> Case Documents</h4>
                 <div class="table-card">
                     <div class="table-responsive">
@@ -310,7 +344,8 @@
                                             <td class="text-muted small">@doc.UploadedBy</td>
                                             <td class="text-muted small">@doc.UploadedAt.ToShortDateString()</td>
                                             <td class="text-end">
-                                                <a href="@doc.FilePath" class="btn btn-sm btn-outline-primary" target="_blank">
+                                                <!-- FIXED DOWNLOAD BUTTON -->
+                                                <a href="@doc.FilePath" class="btn-download-link" download="@doc.FileName">
                                                     <i class="bi bi-download"></i> Download
                                                 </a>
                                             </td>
@@ -335,51 +370,63 @@
             <!-- Right Column: Action Forms -->
             <div class="col-lg-4">
 
-                <!-- 1. SCHEDULE HEARING FORM -->
-                <div class="schedule-card">
-                    <h5 class="form-title">Schedule New Hearing</h5>
-                    <form asp-action="AddHearing" method="post">
-                        <input type="hidden" name="CaseId" value="@Model.Id" />
+                @if (Model.Status != LawFirmManagement.Models.CaseStatus.Closed)
+                {
+                    <!-- 1. SCHEDULE HEARING FORM -->
+                    <div class="schedule-card">
+                        <h5 class="form-title">Schedule New Hearing</h5>
+                        <form asp-action="AddHearing" method="post">
+                            <input type="hidden" name="CaseId" value="@Model.Id" />
 
-                        <div class="mb-3">
-                            <label class="form-label">Date & Time</label>
-                            <input type="datetime-local" name="HearingDate" class="form-control" required />
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Date & Time</label>
+                                <input type="datetime-local" name="HearingDate" class="form-control" required />
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Court Name</label>
-                            <input type="text" name="CourtName" class="form-control" placeholder="e.g. Superior Court Room 4B" required />
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Court Name</label>
+                                <input type="text" name="CourtName" class="form-control" placeholder="e.g. Superior Court Room 4B" required />
+                            </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Notes</label>
-                            <textarea name="Notes" class="form-control" rows="2" placeholder="Additional details..."></textarea>
-                        </div>
+                            <div class="mb-4">
+                                <label class="form-label">Notes</label>
+                                <textarea name="Notes" class="form-control" rows="2" placeholder="Additional details..."></textarea>
+                            </div>
 
-                        <button type="submit" class="btn btn-add-hearing">
-                            <i class="bi bi-plus-circle me-2"></i> Add to Schedule
-                        </button>
-                    </form>
-                </div>
+                            <button type="submit" class="btn btn-add-hearing">
+                                <i class="bi bi-plus-circle me-2"></i> Add to Schedule
+                            </button>
+                        </form>
+                    </div>
 
-                <!-- 2. UPLOAD DOCUMENT FORM (ADDED) -->
-                <div class="upload-card">
-                    <h5 class="form-title">Upload Document</h5>
+                    <!-- 2. UPLOAD DOCUMENT FORM -->
+                    <div class="upload-card">
+                        <h5 class="form-title">Upload Document</h5>
 
-                    <form asp-action="UploadDocument" method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="caseId" value="@Model.Id" />
+                        <form asp-action="UploadDocument" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="caseId" value="@Model.Id" />
 
-                        <div class="mb-3">
-                            <label class="form-label">Select File</label>
-                            <input type="file" name="file" class="form-control" required />
-                            <small class="text-muted mt-1 d-block">PDF, Word, or Images only.</small>
-                        </div>
+                            <div class="mb-3">
+                                <label class="form-label">Select File</label>
+                                <input type="file" name="file" class="form-control" required />
+                                <small class="text-muted mt-1 d-block">PDF, Word, or Images only.</small>
+                            </div>
 
-                        <button class="btn btn-upload">
-                            <i class="bi bi-cloud-upload me-2"></i> Upload File
-                        </button>
-                    </form>
-                </div>
+                            <button class="btn btn-upload">
+                                <i class="bi bi-cloud-upload me-2"></i> Upload File
+                            </button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <!-- CLOSED CASE MESSAGE -->
+                    <div class="closed-alert">
+                        <i class="bi bi-lock-fill fs-1 d-block mb-2 text-muted"></i>
+                        <h5 class="text-secondary">Case Closed</h5>
+                        <p class="small mb-0">Hearing scheduling and document uploads are disabled for closed cases. Re-open the case to enable actions.</p>
+                    </div>
+                }
 
             </div>
         </div>
