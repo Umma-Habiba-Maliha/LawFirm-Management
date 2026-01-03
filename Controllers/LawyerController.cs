@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using LawFirmManagement.Data;
 using LawFirmManagement.Models;
+using LawFirmManagement.Services; // 1. Added Namespace
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using System.Linq;
@@ -18,36 +19,33 @@ namespace LawFirmManagement.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IWebHostEnvironment _environment;
+        private readonly NotificationService _notificationService; // 2. Add Field
 
         public LawyerController(
             ApplicationDbContext db,
             UserManager<IdentityUser> userManager,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            NotificationService notificationService) // 3. Inject Service
         {
             _db = db;
             _userManager = userManager;
             _environment = environment;
+            _notificationService = notificationService;
         }
 
-        // ----------------------------------------------------
-        // 1. DASHBOARD - LIST ASSIGNED CASES
-        // ----------------------------------------------------
+        // 1. DASHBOARD
         public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
-
             var myCases = await _db.Cases
                 .Include(c => c.Client)
                 .Where(c => c.LawyerId == userId)
-                .OrderByDescending(c => c.Status) // Show Active/Pending first
+                .OrderByDescending(c => c.Status)
                 .ToListAsync();
-
             return View(myCases);
         }
 
-        // ----------------------------------------------------
-        // 2. ACCEPT CASE (The "Handshake" Action)
-        // ----------------------------------------------------
+        // 2. ACCEPT CASE
         [HttpPost]
         public async Task<IActionResult> AcceptCase(Guid id)
         {
@@ -56,9 +54,17 @@ namespace LawFirmManagement.Controllers
 
             if (caseObj != null && caseObj.Status == CaseStatus.Pending)
             {
-                caseObj.Status = CaseStatus.Active; // Flip to Active
+                caseObj.Status = CaseStatus.Active;
                 await _db.SaveChangesAsync();
-                TempData["msg"] = "Case accepted successfully. You can now manage it.";
+
+                // --- NOTIFY CLIENT ---
+                await _notificationService.NotifyUserAsync(
+                    caseObj.ClientId,
+                    "Case Accepted",
+                    $"Your case <strong>{caseObj.CaseTitle}</strong> is now Active. Lawyer: {User.Identity.Name}"
+                );
+
+                TempData["msg"] = "Case accepted successfully.";
             }
             else
             {
@@ -68,113 +74,98 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("Index");
         }
 
-        // ----------------------------------------------------
-        // 3. MANAGE CASE (Enforced Access)
-        // ----------------------------------------------------
+        // 3. MANAGE CASE
         public async Task<IActionResult> ManageCase(Guid id)
         {
             var userId = _userManager.GetUserId(User);
+            var caseDetails = await _db.Cases.Include(c => c.Client).FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
 
-            var caseDetails = await _db.Cases
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
-
-            if (caseDetails == null) return NotFound("Case not found or access denied.");
-
-            // STRICT WORKFLOW CHECK
+            if (caseDetails == null) return NotFound();
             if (caseDetails.Status == CaseStatus.Pending)
             {
-                TempData["error"] = "You must ACCEPT the case request before you can manage it.";
+                TempData["error"] = "You must ACCEPT the case first.";
                 return RedirectToAction("Index");
             }
 
-            // Load Hearings & Documents
             ViewBag.Hearings = await _db.Hearings.Where(h => h.CaseId == id).OrderBy(h => h.HearingDate).ToListAsync();
             ViewBag.Documents = await _db.CaseDocuments.Where(d => d.CaseId == id).OrderByDescending(d => d.UploadedAt).ToListAsync();
 
             return View(caseDetails);
         }
 
-        // ----------------------------------------------------
-        // 4. UPDATE STATUS (With Hearing Validation)
-        // ----------------------------------------------------
+        // 4. UPDATE STATUS
         [HttpPost]
         public async Task<IActionResult> UpdateStatus(Guid caseId, CaseStatus status)
         {
             var caseObj = await _db.Cases.FindAsync(caseId);
             if (caseObj != null)
             {
-                // CONSTRAINT CHECK: If trying to Close...
                 if (status == CaseStatus.Closed)
                 {
-                    // Count how many hearings exist for this case
                     int hearingCount = await _db.Hearings.CountAsync(h => h.CaseId == caseId);
-
-                    // Requirement: "Without multiple hearings (at least 2), case will not close"
-                    if (hearingCount < 2)
+                    if (hearingCount < 1)
                     {
-                        TempData["error"] = $"Cannot close case! You need multiple hearings (at least 2). Current: {hearingCount}.";
+                        TempData["error"] = $"Cannot close! Needs at least 1 hearings. Current: {hearingCount}.";
                         return RedirectToAction("ManageCase", new { id = caseId });
                     }
-
-                    // If check passes, set End Date
                     caseObj.EndDate = DateTime.UtcNow;
                 }
                 else
                 {
-                    // If reopening, clear End Date
                     caseObj.EndDate = null;
                 }
 
                 caseObj.Status = status;
                 await _db.SaveChangesAsync();
-                TempData["msg"] = "Case Status Updated.";
+
+                // --- NOTIFY CLIENT ---
+                await _notificationService.NotifyUserAsync(
+                    caseObj.ClientId,
+                    "Status Update",
+                    $"Case <strong>{caseObj.CaseTitle}</strong> status changed to: <strong>{status}</strong>."
+                );
+
+                TempData["msg"] = "Status Updated.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
         }
 
-        // ----------------------------------------------------
-        // 5. SCHEDULE HEARING (With Closed Check)
-        // ----------------------------------------------------
+        // 5. ADD HEARING
         [HttpPost]
         public async Task<IActionResult> AddHearing(Guid CaseId, DateTime HearingDate, string CourtName, string Notes)
         {
             var caseObj = await _db.Cases.FindAsync(CaseId);
-
-            // CONSTRAINT: Cannot add hearing if case is Closed
             if (caseObj != null && caseObj.Status == CaseStatus.Closed)
             {
-                TempData["error"] = "Cannot schedule hearing. This case is CLOSED.";
+                TempData["error"] = "Cannot schedule hearing. Case is CLOSED.";
                 return RedirectToAction("ManageCase", new { id = CaseId });
             }
 
-            var hearing = new Hearing
-            {
-                CaseId = CaseId,
-                HearingDate = HearingDate,
-                CourtName = CourtName,
-                Notes = Notes ?? "",
-                ReminderSent = false
-            };
-
-            _db.Hearings.Add(hearing);
+            _db.Hearings.Add(new Hearing { CaseId = CaseId, HearingDate = HearingDate, CourtName = CourtName, Notes = Notes ?? "", ReminderSent = false });
             await _db.SaveChangesAsync();
 
-            TempData["msg"] = "Hearing scheduled successfully.";
+            // --- NOTIFY CLIENT ---
+            if (caseObj != null)
+            {
+                await _notificationService.NotifyUserAsync(
+                    caseObj.ClientId,
+                    "Hearing Scheduled",
+                    $"New hearing for <strong>{caseObj.CaseTitle}</strong> on {HearingDate.ToShortDateString()} at {CourtName}."
+                );
+            }
+
+            TempData["msg"] = "Hearing added.";
             return RedirectToAction("ManageCase", new { id = CaseId });
         }
 
-        // ----------------------------------------------------
         // 6. UPLOAD DOCUMENT
-        // ----------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> UploadDocument(Guid caseId, IFormFile file)
         {
-            // CONSTRAINT: Cannot upload if case is Closed
             var caseObj = await _db.Cases.FindAsync(caseId);
             if (caseObj != null && caseObj.Status == CaseStatus.Closed)
             {
-                TempData["error"] = "Cannot upload documents. This case is CLOSED.";
+                TempData["error"] = "Cannot upload documents. Case is CLOSED.";
                 return RedirectToAction("ManageCase", new { id = caseId });
             }
 
@@ -188,28 +179,29 @@ namespace LawFirmManagement.Controllers
 
                 _db.CaseDocuments.Add(new CaseDocument { CaseId = caseId, FileName = file.FileName, FilePath = "/documents/" + fileName, UploadedBy = User.Identity?.Name });
                 await _db.SaveChangesAsync();
+
+                // --- NOTIFY CLIENT ---
+                if (caseObj != null)
+                {
+                    await _notificationService.NotifyUserAsync(
+                        caseObj.ClientId,
+                        "Document Uploaded",
+                        $"A new document <strong>{file.FileName}</strong> has been uploaded by your lawyer."
+                    );
+                }
+
                 TempData["msg"] = "Document uploaded.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
         }
 
-        // ----------------------------------------------------
-        // 7. VIEW EARNINGS
-        // ----------------------------------------------------
+        // 7. PAYMENTS
         [HttpGet]
         public async Task<IActionResult> Payments()
         {
             var userId = _userManager.GetUserId(User);
-
-            var payments = await _db.Payments
-                .Include(p => p.Case)
-                .Include(p => p.Case.Client)
-                .Where(p => p.Case.LawyerId == userId)
-                .OrderByDescending(p => p.PaymentDate)
-                .ToListAsync();
-
+            var payments = await _db.Payments.Include(p => p.Case).Include(p => p.Case.Client).Where(p => p.Case.LawyerId == userId).OrderByDescending(p => p.PaymentDate).ToListAsync();
             ViewBag.TotalEarnings = payments.Sum(p => p.LawyerShare);
-
             return View(payments);
         }
     }

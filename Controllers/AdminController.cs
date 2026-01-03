@@ -31,9 +31,7 @@ namespace LawFirmManagement.Controllers
             _emailSender = emailSender;
         }
 
-        // ---------------------------------------------------------
         // 1. REGISTER ADMIN
-        // ---------------------------------------------------------
         [HttpGet]
         [AllowAnonymous]
         public IActionResult RegisterAdmin() => View();
@@ -66,9 +64,7 @@ namespace LawFirmManagement.Controllers
             return View();
         }
 
-        // ---------------------------------------------------------
         // 2. USER LIST
-        // ---------------------------------------------------------
         public IActionResult Users()
         {
             var profiles = _db.UserProfiles
@@ -77,16 +73,14 @@ namespace LawFirmManagement.Controllers
             return View(profiles);
         }
 
-        // ---------------------------------------------------------
-        // 3. DELETE USER (Fixed to handle Constraints)
-        // ---------------------------------------------------------
+        // 3. DELETE USER
         [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return RedirectToAction("Users");
 
-            // A. Remove Related Cases
+            // Remove Related Cases
             var userCases = _db.Cases.Where(c => c.ClientId == id || c.LawyerId == id).ToList();
             if (userCases.Any())
             {
@@ -94,7 +88,7 @@ namespace LawFirmManagement.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            // B. Remove Profile
+            // Remove Profile
             var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
             if (profile != null)
             {
@@ -102,7 +96,7 @@ namespace LawFirmManagement.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            // C. Remove Pending Request
+            // Remove Pending Request
             var pending = await _db.PendingUsers.FirstOrDefaultAsync(p => p.Email == user.Email);
             if (pending != null)
             {
@@ -110,21 +104,17 @@ namespace LawFirmManagement.Controllers
                 await _db.SaveChangesAsync();
             }
 
-            // D. Remove User
+            // Remove User
             await _userManager.DeleteAsync(user);
 
             return RedirectToAction("Users");
         }
 
-        // ---------------------------------------------------------
         // 4. CREATE LAWYER (GET)
-        // ---------------------------------------------------------
         [HttpGet]
         public IActionResult CreateLawyer() => View();
 
-        // ---------------------------------------------------------
         // 5. CREATE LAWYER (POST)
-        // ---------------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> CreateLawyer(CreateLawyerViewModel model)
         {
@@ -137,7 +127,6 @@ namespace LawFirmManagement.Controllers
                 PhoneNumber = model.Phone
             };
 
-            // Auto-generate password
             string autoPassword = "Law" + Guid.NewGuid().ToString("N").Substring(0, 6) + "!";
 
             var result = await _userManager.CreateAsync(user, autoPassword);
@@ -162,7 +151,6 @@ namespace LawFirmManagement.Controllers
                 _db.UserProfiles.Add(profile);
                 await _db.SaveChangesAsync();
 
-                // Send Email
                 string subject = "Welcome to LawFirm as a Lawyer";
                 string body = $"<h1>Welcome {model.FullName}</h1><p>Login: {model.Email}</p><p>Password: {autoPassword}</p>";
                 await _emailSender.SendEmailAsync(model.Email, subject, body);
@@ -176,9 +164,7 @@ namespace LawFirmManagement.Controllers
             return View(model);
         }
 
-        // ---------------------------------------------------------
         // 6. LAWYER CASE HISTORY
-        // ---------------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> LawyerCases(string lawyerId)
         {
@@ -199,9 +185,7 @@ namespace LawFirmManagement.Controllers
             return View(history);
         }
 
-        // ---------------------------------------------------------
-        // 7. FINANCIAL DASHBOARD (THE MISSING PART)
-        // ---------------------------------------------------------
+        // 7. FINANCIAL DASHBOARD
         [HttpGet]
         public async Task<IActionResult> Payments()
         {
@@ -212,12 +196,80 @@ namespace LawFirmManagement.Controllers
                 .OrderByDescending(p => p.PaymentDate)
                 .ToListAsync();
 
-            // Calculate Totals
             ViewBag.TotalRevenue = payments.Sum(p => p.TotalAmount);
             ViewBag.TotalAdminShare = payments.Sum(p => p.AdminShare);
             ViewBag.TotalLawyerShare = payments.Sum(p => p.LawyerShare);
 
             return View(payments);
+        }
+
+        // ---------------------------------------------------------
+        // 8. EDIT USER (GET) - NEWLY ADDED
+        // ---------------------------------------------------------
+        [HttpGet]
+        public async Task<IActionResult> EditUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
+            if (profile == null) return NotFound();
+
+            var model = new EditUserViewModel
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                Phone = user.PhoneNumber,
+                FullName = profile.FullName,
+                Role = profile.Role,
+                Specialization = profile.Specialization,
+                DateOfJoining = profile.DateOfJoining
+            };
+
+            return View(model);
+        }
+
+        // ---------------------------------------------------------
+        // 9. EDIT USER (POST) - NEWLY ADDED
+        // ---------------------------------------------------------
+        [HttpPost]
+        public async Task<IActionResult> EditUser(EditUserViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == model.UserId);
+
+            if (user == null || profile == null) return NotFound();
+
+            // Update Login Info
+            user.Email = model.Email;
+            user.UserName = model.Email;
+            user.PhoneNumber = model.Phone;
+
+            // Update Profile Info
+            profile.FullName = model.FullName;
+            profile.Phone = model.Phone;
+
+            // Conditional Update: Only update Lawyer fields if user is a Lawyer
+            if (model.Role == "Lawyer")
+            {
+                profile.Specialization = model.Specialization;
+                profile.DateOfJoining = model.DateOfJoining;
+            }
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                _db.UserProfiles.Update(profile);
+                await _db.SaveChangesAsync();
+                return RedirectToAction("Users");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError("", error.Description);
+
+            return View(model);
         }
     }
 }

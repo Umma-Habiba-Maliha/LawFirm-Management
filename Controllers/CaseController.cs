@@ -1,5 +1,6 @@
 ﻿using LawFirmManagement.Data;
 using LawFirmManagement.Models;
+using LawFirmManagement.Services; // 1. Added Namespace
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,11 +17,16 @@ namespace LawFirmManagement.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly NotificationService _notificationService; // 2. Add Field
 
-        public CaseController(ApplicationDbContext db, UserManager<IdentityUser> userManager)
+        public CaseController(
+            ApplicationDbContext db,
+            UserManager<IdentityUser> userManager,
+            NotificationService notificationService) // 3. Inject Service
         {
             _db = db;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         // 1. LIST CASES
@@ -48,19 +54,14 @@ namespace LawFirmManagement.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(CreateCaseViewModel model)
         {
-            // 1. Basic Form Validation
             if (!ModelState.IsValid)
             {
                 await LoadDropdowns(model);
                 return View(model);
             }
 
-            // ---------------------------------------------------------
-            // LOGIC 1: SPECIALIZATION MATCH
-            // ---------------------------------------------------------
-            var lawyerProfile = await _db.UserProfiles
-                .FirstOrDefaultAsync(u => u.UserId == model.LawyerId);
-
+            // Logic 1: Specialization Match
+            var lawyerProfile = await _db.UserProfiles.FirstOrDefaultAsync(u => u.UserId == model.LawyerId);
             if (lawyerProfile == null)
             {
                 ModelState.AddModelError("LawyerId", "Selected lawyer profile not found.");
@@ -68,35 +69,23 @@ namespace LawFirmManagement.Controllers
                 return View(model);
             }
 
-            // Compare Case Type vs Lawyer Specialization (Ignore case sensitivity)
             if (!string.Equals(lawyerProfile.Specialization, model.CaseType, StringComparison.OrdinalIgnoreCase))
             {
-                ModelState.AddModelError("LawyerId",
-                    $"Mismatch! This case is '{model.CaseType}', but Lawyer {lawyerProfile.FullName} specializes in '{lawyerProfile.Specialization}'.");
-
+                ModelState.AddModelError("LawyerId", $"Mismatch! This case is '{model.CaseType}', but Lawyer specializes in '{lawyerProfile.Specialization}'.");
                 await LoadDropdowns(model);
                 return View(model);
             }
 
-            // ---------------------------------------------------------
-            // LOGIC 2: WORKLOAD LIMIT (Max 5 Active)
-            // ---------------------------------------------------------
-            int activeCases = await _db.Cases
-                .CountAsync(c => c.LawyerId == model.LawyerId && c.Status != CaseStatus.Closed);
-
+            // Logic 2: Workload Limit
+            int activeCases = await _db.Cases.CountAsync(c => c.LawyerId == model.LawyerId && c.Status != CaseStatus.Closed);
             if (activeCases >= 5)
             {
-                ModelState.AddModelError("LawyerId",
-                    $"Overloaded! Lawyer {lawyerProfile.FullName} already has {activeCases} active cases. Max limit is 5.");
-
+                ModelState.AddModelError("LawyerId", $"Overloaded! Lawyer already has {activeCases} active cases. Max limit is 5.");
                 await LoadDropdowns(model);
                 return View(model);
             }
 
-            // ---------------------------------------------------------
-            // LOGIC 3: FIXED FEE ENFORCEMENT & ADMIN SHARE
-            // ---------------------------------------------------------
-            // Ensure the fee stored matches the official rate card
+            // Logic 3: Fixed Fee & Admin Share
             decimal fixedFee = GetFixedFee(model.CaseType);
 
             var newCase = new Case
@@ -108,22 +97,24 @@ namespace LawFirmManagement.Controllers
                 LawyerId = model.LawyerId,
                 Status = CaseStatus.Pending,
                 StartDate = DateTime.UtcNow,
-
-                // Save values
                 TotalFee = fixedFee,
                 PaymentStatus = "Unpaid",
-
-                // NEW: Save the custom Admin Share Percentage from the form
                 AdminSharePercentage = model.AdminSharePercentage
             };
 
             _db.Cases.Add(newCase);
             await _db.SaveChangesAsync();
 
+            // --- 4. SEND NOTIFICATION TO LAWYER (NEW) ---
+            await _notificationService.NotifyUserAsync(
+                model.LawyerId,
+                "New Case Assigned",
+                $"You have been assigned to case: <strong>{model.CaseTitle}</strong> ({model.CaseType}). Please accept it."
+            );
+
             return RedirectToAction("Index");
         }
 
-        // Helper: Get Fixed Fees
         private decimal GetFixedFee(string caseType)
         {
             return caseType switch
@@ -137,18 +128,11 @@ namespace LawFirmManagement.Controllers
             };
         }
 
-        // Helper: Load Dropdowns with Smart Info
         private async Task LoadDropdowns(CreateCaseViewModel model)
         {
-            // Clients
             var clientUsers = await _userManager.GetUsersInRoleAsync("Client");
-            model.ClientList = clientUsers.Select(u => new SelectListItem
-            {
-                Value = u.Id,
-                Text = u.Email
-            });
+            model.ClientList = clientUsers.Select(u => new SelectListItem { Value = u.Id, Text = u.Email });
 
-            // Lawyers - Add Specialization and Workload to the dropdown text
             var lawyers = await _db.UserProfiles
                 .Where(p => p.Role == "Lawyer")
                 .Include(p => p.User)
@@ -156,14 +140,12 @@ namespace LawFirmManagement.Controllers
 
             model.LawyerList = lawyers.Select(p =>
             {
-                // Count active cases for this lawyer
                 int currentLoad = _db.Cases.Count(c => c.LawyerId == p.UserId && c.Status != CaseStatus.Closed);
-
+                string statusText = currentLoad >= 5 ? "[FULL]" : $"[{currentLoad}/5]";
                 return new SelectListItem
                 {
                     Value = p.UserId,
-                    // Text format: "John Doe (Criminal) [3/5]"
-                    Text = $"{p.FullName} ({p.Specialization}) [{currentLoad}/5]"
+                    Text = $"{p.FullName} ({p.Specialization}) - {statusText}"
                 };
             });
         }

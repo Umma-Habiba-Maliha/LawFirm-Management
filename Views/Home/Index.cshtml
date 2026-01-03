@@ -256,7 +256,8 @@
             <div>
                 @if (User.IsInRole("Admin"))
                 {
-                    <a asp-controller="Home" asp-action="AdminDashboard" class="btn-hero-primary">
+                    
+                    <a asp-controller="AdminDashboard" asp-action="Index" class="btn-hero-primary">
                         <i class="bi bi-speedometer2 me-2"></i>Admin Dashboard
                     </a>
                 }

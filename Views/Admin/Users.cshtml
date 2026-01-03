@@ -3,6 +3,9 @@
     ViewData["Title"] = "All Users";
 }
 
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.6/css/dataTables.dataTables.min.css" />
+
 <style>
     /* Page Header */
     .page-header {
@@ -19,6 +22,7 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         overflow: hidden; /* Rounds the table corners */
         border: none;
+        padding: 20px; /* Added padding for DataTables controls */
     }
 
     /* Table Header */
@@ -91,6 +95,20 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
+    .btn-edit {
+        background-color: white;
+        color: #f39c12;
+        border: 1px solid #f39c12;
+        font-weight: 500;
+        transition: all 0.2s;
+        margin-right: 5px;
+    }
+
+        .btn-edit:hover {
+            background-color: #f39c12;
+            color: white;
+        }
+
     .btn-delete {
         background-color: white;
         color: #e74c3c;
@@ -103,14 +121,25 @@
             background-color: #e74c3c;
             color: white;
         }
+
+    /* DataTables Overrides */
+    .dataTables_wrapper .dataTables_length select {
+        padding-right: 25px;
+    }
 </style>
 
 <div class="container mt-4">
-    
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>User Management</h2>
+        <a asp-controller="Admin" asp-action="CreateLawyer" class="btn btn-success">
+            + Register New Lawyer
+        </a>
+    </div>
 
     <div class="card table-card">
         <div class="table-responsive">
-            <table class="table custom-table mb-0">
+            <!-- Added ID for DataTable -->
+            <table id="myTable" class="table custom-table mb-0">
                 <thead>
                     <tr>
                         <th>Full Name</th>
@@ -168,9 +197,15 @@
                             </td>
 
                             <td class="text-end">
-                                <form asp-controller="Admin" asp-action="DeleteUser" method="post">
+                                <!-- Edit Button -->
+                                <a asp-controller="Admin" asp-action="EditUser" asp-route-id="@profile.UserId" class="btn btn-sm btn-edit">
+                                    Edit
+                                </a>
+
+                                <form asp-controller="Admin" asp-action="DeleteUser" method="post" style="display:inline-block;">
                                     <input type="hidden" name="id" value="@profile.UserId" />
-                                    <button class="btn btn-sm btn-delete" onclick="return confirm('Are you sure you want to delete @profile.FullName? This cannot be undone.')">
+
+                                    <button class="btn btn-sm btn-delete" onclick="return confirm('Are you sure you want to delete @profile.FullName?')">
                                         Delete
                                     </button>
                                 </form>
@@ -182,3 +217,17 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <!-- jQuery (ensure it's loaded if not already in Layout) -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="//cdn.datatables.net/2.3.6/js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = new DataTable('#myTable');
+        });
+    </script>
+}
