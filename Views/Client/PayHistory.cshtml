@@ -141,12 +141,12 @@
                     <thead>
                         <tr>
                             <th>Txn ID</th>
-                            <th>Date</th>
+                            <th>Date & Time</th>
                             <th>Case Title</th>
                             <th>Lawyer</th>
                             <th>Payment Type</th>
-                            <th>Method</th>
                             <th class="text-end">Amount Paid</th>
+                            <th class="text-end">Invoice</th> <!-- Added Column -->
                         </tr>
                     </thead>
                     <tbody>
@@ -156,7 +156,7 @@
                                 <td><span class="txn-id">#TXN-@p.Id.ToString("D5")</span></td>
                                 <td>
                                     <span style="display:none;">@p.PaymentDate.ToString("yyyyMMddHHmm")</span>
-                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy")
+                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
                                 </td>
                                 <td class="fw-bold">@p.Case?.CaseTitle</td>
                                 <td>
@@ -185,8 +185,12 @@
                                         <span class="badge badge-full">Full Payment</span>
                                     }
                                 </td>
-                                <td><span class="badge bg-light text-dark border">@p.PaymentMethod</span></td>
                                 <td class="text-end fw-bold text-dark">৳@p.TotalAmount</td>
+                                <td class="text-end">
+                                    <a asp-controller="Invoice" asp-action="Download" asp-route-id="@p.Id" class="btn btn-sm btn-outline-dark" target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                </td>
                             </tr>
                         }
                     </tbody>

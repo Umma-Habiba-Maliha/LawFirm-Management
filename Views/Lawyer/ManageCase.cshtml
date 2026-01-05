@@ -345,7 +345,7 @@
                                             <td class="text-muted small">@doc.UploadedAt.ToShortDateString()</td>
                                             <td class="text-end">
                                                 <!-- FIXED DOWNLOAD BUTTON -->
-                                                <a href="@doc.FilePath" class="btn-download-link" download="@doc.FileName">
+                                                <a asp-action="DownloadDocument" asp-route-id="@doc.Id" class="btn btn-sm btn-outline-primary">
                                                     <i class="bi bi-download"></i> Download
                                                 </a>
                                             </td>

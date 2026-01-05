@@ -56,6 +56,8 @@ builder.Services.AddScoped<NotificationService>();
 
 // SSLCommerz Service (For Payments)
 builder.Services.AddScoped<SSLCommerzService>();
+// Invoice Service (For generating invoices)
+builder.Services.AddScoped<LawFirmManagement.Services.InvoiceService>();
 
 var app = builder.Build();
 

@@ -93,6 +93,21 @@
         color: #155724;
     }
 
+    .badge-full {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    /* Transaction ID Style */
+    .txn-id {
+        font-family: monospace;
+        color: #7f8c8d;
+        font-weight: 600;
+        background: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
     /* DataTables Overrides */
     .dataTables_wrapper .dataTables_length select {
         padding-right: 25px;
@@ -126,22 +141,25 @@
                 <table id="myTable" class="table custom-table mb-0">
                     <thead>
                         <tr>
-                            <th>Date</th>
+                            <th>Txn ID</th>
+                            <th>Date & Time</th>
                             <th>Case Title</th>
                             <th>Client</th>
                             <th>Payment Type</th>
                             <th class="text-end">Client Paid</th>
-                            <th class="text-end text-success">My Cut (90%)</th>
+                            <th class="text-end text-success">Lawyer Share</th>
+                            <th class="text-end">Invoice</th> <!-- Added -->
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var p in Model)
                         {
                             <tr>
+                                <td><span class="txn-id">#TXN-@p.Id.ToString("D5")</span></td>
                                 <td>
                                     <!-- Hidden sort value for proper date sorting -->
                                     <span style="display:none;">@p.PaymentDate.ToString("yyyyMMddHHmm")</span>
-                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy")
+                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
                                 </td>
                                 <td class="fw-bold">@p.Case?.CaseTitle</td>
                                 <td>@p.Case?.Client?.Email</td>
@@ -150,13 +168,22 @@
                                     {
                                         <span class="badge badge-advance">Advance (20%)</span>
                                     }
-                                    else
+                                    else if (p.PaymentType == "Final")
                                     {
                                         <span class="badge badge-final">Final (80%)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-full">Full Payment</span>
                                     }
                                 </td>
                                 <td class="text-end text-muted">৳@p.TotalAmount</td>
                                 <td class="text-end fw-bold text-success">+ ৳@p.LawyerShare</td>
+                                <td class="text-end">
+                                    <a asp-controller="Invoice" asp-action="Download" asp-route-id="@p.Id" class="btn btn-sm btn-outline-dark" target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -176,8 +203,8 @@
     <script>
         $(document).ready(function () {
             let table = new DataTable('#myTable', {
-                // Optional: Default sort by Date (Column 0) descending
-                order: [[0, 'desc']]
+                // Optional: Default sort by Date (Column 1) descending
+                order: [[1, 'desc']]
             });
         });
     </script>

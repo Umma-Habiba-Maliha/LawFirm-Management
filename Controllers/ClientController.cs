@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using System;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting; // Needed for IWebHostEnvironment
+using System.IO;                    // Needed for Path
 
 namespace LawFirmManagement.Controllers
 {
@@ -17,24 +19,22 @@ namespace LawFirmManagement.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly SSLCommerzService _sslService;
-        private readonly IWebHostEnvironment _environment;
-        private readonly NotificationService _notificationService; // 1. Inject Notification Service
+        private readonly IWebHostEnvironment _environment; // Defined here
+        private readonly NotificationService _notificationService;
 
         public ClientController(
             ApplicationDbContext db,
             UserManager<IdentityUser> userManager,
             SSLCommerzService sslService,
             IWebHostEnvironment environment,
-            NotificationService notificationService) // 2. Add to Constructor
+            NotificationService notificationService)
         {
             _db = db;
             _userManager = userManager;
             _sslService = sslService;
-            _environment = environment;
+            _environment = environment; // <--- FIX: THIS WAS MISSING!
             _notificationService = notificationService;
         }
-
-        // ... [Index, Details, DownloadDocument, Pay methods remain the same] ...
 
         // 1. DASHBOARD
         [Authorize(Roles = "Client")]
@@ -67,20 +67,7 @@ namespace LawFirmManagement.Controllers
             return View(caseDetails);
         }
 
-        // 3. DOWNLOAD DOCUMENT
-        [Authorize(Roles = "Client")]
-        public IActionResult DownloadDocument(int id)
-        {
-            var doc = _db.CaseDocuments.Find(id);
-            if (doc == null) return NotFound("Document record not found.");
-            var webRoot = _environment.WebRootPath;
-            var relativePath = doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var filePath = Path.Combine(webRoot, relativePath);
-            if (!System.IO.File.Exists(filePath)) return NotFound("File not found on server.");
-            return PhysicalFile(filePath, "application/octet-stream", doc.FileName);
-        }
-
-        // 4. SHOW PAYMENT PAGE
+        // 3. SHOW PAYMENT PAGE (Updated to 50% Logic)
         [Authorize(Roles = "Client")]
         [HttpGet]
         public async Task<IActionResult> Pay(Guid id, string type = "")
@@ -94,21 +81,30 @@ namespace LawFirmManagement.Controllers
 
             if (caseObj.PaymentStatus == "Unpaid")
             {
-                if (type == "Full") { payableAmount = caseObj.TotalFee; paymentStage = "Full"; }
-                else { payableAmount = caseObj.TotalFee * 0.20m; paymentStage = "Advance"; }
+                if (type == "Full")
+                {
+                    payableAmount = caseObj.TotalFee;
+                    paymentStage = "Full";
+                }
+                else
+                {
+                    payableAmount = caseObj.TotalFee * 0.50m; // 50% Advance
+                    paymentStage = "Advance";
+                }
             }
             else if (caseObj.PaymentStatus == "AdvancePaid")
             {
-                payableAmount = caseObj.TotalFee * 0.80m;
+                payableAmount = caseObj.TotalFee * 0.50m; // Remaining 50%
                 paymentStage = "Final";
             }
 
             ViewBag.PayableAmount = payableAmount;
             ViewBag.PaymentStage = paymentStage;
+
             return View(caseObj);
         }
 
-        // 5. PROCESS PAYMENT
+        // 4. PROCESS PAYMENT (Updated to 50% Logic)
         [Authorize(Roles = "Client")]
         [HttpPost]
         public async Task<IActionResult> ProcessPayment(Guid id, string paymentStage)
@@ -118,8 +114,8 @@ namespace LawFirmManagement.Controllers
 
             decimal amount = 0;
             if (paymentStage == "Full") amount = caseObj.TotalFee;
-            else if (paymentStage == "Advance") amount = caseObj.TotalFee * 0.20m;
-            else if (paymentStage == "Final") amount = caseObj.TotalFee * 0.80m;
+            else if (paymentStage == "Advance") amount = caseObj.TotalFee * 0.50m; // 50%
+            else if (paymentStage == "Final") amount = caseObj.TotalFee * 0.50m;   // 50%
 
             string txnId = "TXN-" + Guid.NewGuid().ToString().Substring(0, 10);
             var user = await _userManager.GetUserAsync(User);
@@ -149,7 +145,7 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("Index");
         }
 
-        // 6. PAYMENT SUCCESS CALLBACK (With Notifications)
+        // 5. PAYMENT SUCCESS
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> PaymentSuccess(IFormCollection form)
@@ -177,6 +173,7 @@ namespace LawFirmManagement.Controllers
             decimal adminShare = 0;
             decimal lawyerShare = 0;
             string paymentTypeRecord = "";
+
             decimal adminRate = (decimal)(caseObj.AdminSharePercentage / 100.0);
 
             if (stage == "Full")
@@ -191,7 +188,7 @@ namespace LawFirmManagement.Controllers
                 lawyerShare = paidAmount;
                 adminShare = 0;
                 caseObj.PaymentStatus = "AdvancePaid";
-                paymentTypeRecord = "Advance (20%)";
+                paymentTypeRecord = "Advance (50%)";
             }
             else if (stage == "Final")
             {
@@ -216,30 +213,17 @@ namespace LawFirmManagement.Controllers
             _db.Payments.Add(payment);
             await _db.SaveChangesAsync();
 
-            // --- SEND NOTIFICATIONS ---
-
-            // 1. Notify Admin (Payment Received)
-            await _notificationService.CreateForAdminsAsync(
-                "Payment Received",
-                $"Client paid ৳{paidAmount} for Case: {caseObj.CaseTitle}."
-            );
-
-            // 2. Notify Lawyer (Payment Update)
+            // Notifications
+            await _notificationService.CreateForAdminsAsync("Payment Received", $"Client paid ৳{paidAmount} for Case: {caseObj.CaseTitle}.");
             if (!string.IsNullOrEmpty(caseObj.LawyerId))
             {
-                await _notificationService.NotifyUserAsync(
-                    caseObj.LawyerId,
-                    "Payment Update",
-                    $"Payment of ৳{paidAmount} received for Case: {caseObj.CaseTitle}."
-                );
+                await _notificationService.NotifyUserAsync(caseObj.LawyerId, "Payment Update", $"Payment of ৳{paidAmount} received for Case: {caseObj.CaseTitle}.");
             }
-            // --------------------------
 
             TempData["msg"] = $"Payment Successful! TxnID: {tran_id}";
             return RedirectToAction("Index");
         }
 
-        // ... [Fail, Cancel, PayHistory methods remain same] ...
         [HttpPost]
         [AllowAnonymous]
         public IActionResult PaymentFail()
@@ -256,6 +240,23 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("Index");
         }
 
+        // 6. DOWNLOAD DOCUMENT (Fixed)
+        [Authorize(Roles = "Client")]
+        public IActionResult DownloadDocument(int id)
+        {
+            var doc = _db.CaseDocuments.Find(id);
+            if (doc == null) return NotFound("Document record not found.");
+
+            // Now _environment is properly initialized!
+            var webRoot = _environment.WebRootPath;
+            var relativePath = doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var filePath = Path.Combine(webRoot, relativePath);
+
+            if (!System.IO.File.Exists(filePath)) return NotFound("File not found on server.");
+            return PhysicalFile(filePath, "application/octet-stream", doc.FileName);
+        }
+
+        // 7. PAYMENT HISTORY
         [Authorize(Roles = "Client")]
         [HttpGet]
         public async Task<IActionResult> PayHistory()
@@ -267,6 +268,7 @@ namespace LawFirmManagement.Controllers
                 .Where(p => p.Case.ClientId == userId)
                 .OrderByDescending(p => p.PaymentDate)
                 .ToListAsync();
+
             ViewBag.TotalPaid = payments.Sum(p => p.TotalAmount);
             return View(payments);
         }

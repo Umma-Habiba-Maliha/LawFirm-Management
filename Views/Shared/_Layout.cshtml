@@ -1,4 +1,5 @@
 ﻿
+
 @using LawFirmManagement.Data
 @using Microsoft.AspNetCore.Identity
 @using System.Linq
@@ -35,127 +36,112 @@
 
 	<!-- Global Custom Theme CSS -->
 	<style>
-				body {
-						font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-						background-color: #f8f9fa;
-						display: flex;
-						flex-direction: column;
-						min-height: 100vh;
-
+		body {
+			font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+			background-color: #f8f9fa;
+			display: flex;
+			flex-direction: column;
+			min-height: 100vh;
 		}
 
 
 		/* --- Navigation Bar --- */
-				.navbar-custom {
-						background-color: #2c3e50 !important; /* Navy Blue */
-						box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-						padding: 12px 0;
-
+		.navbar-custom {
+			background-color: #2c3e50 !important; /* Navy Blue */
+			box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+			padding: 12px 0;
 		}
 
-				.navbar-brand {
-						color: white !important;
-						font-weight: 700;
-						font-size: 1.3rem;
-						letter-spacing: 0.5px;
-						display: flex;
-						align-items: center;
-
+		.navbar-brand {
+			color: white !important;
+			font-weight: 700;
+			font-size: 1.3rem;
+			letter-spacing: 0.5px;
+			display: flex;
+			align-items: center;
 		}
 
-				.nav-link {
-						color: rgba(255,255,255,0.8) !important;
-						font-weight: 500;
-						font-size: 0.95rem;
-						margin-right: 10px;
-						transition: all 0.2s ease;
-
+		.nav-link {
+			color: rgba(255,255,255,0.8) !important;
+			font-weight: 500;
+			font-size: 0.95rem;
+			margin-right: 10px;
+			transition: all 0.2s ease;
 		}
 
-					.nav-link:hover {
-							color: white !important;
-							transform: translateY(-1px);
+			.nav-link:hover {
+				color: white !important;
+				transform: translateY(-1px);
+			}
 
-		}
 
-
-		/* Active Link Highlight */
-					.nav-link.fw-bold {
-							color: #f39c12 !important; /* Gold/Orange Accent for Dashboards */
-							border-bottom: 2px solid #f39c12;
-
-		}
+			/* Active Link Highlight */
+			.nav-link.fw-bold {
+				color: #f39c12 !important; /* Gold/Orange Accent for Dashboards */
+				border-bottom: 2px solid #f39c12;
+			}
 
 
 		/* Notification Badge Styling */
-				.notification-icon-wrapper {
-						position: relative;
-						display: flex;
-						align-items: center;
-						margin-right: 15px;
-						text-decoration: none;
-
+		.notification-icon-wrapper {
+			position: relative;
+			display: flex;
+			align-items: center;
+			margin-right: 15px;
+			text-decoration: none;
 		}
 
-				.notification-badge {
-						position: absolute;
-						top: 5px;
-						right: 5px;
-						font-size: 0.65rem;
-						padding: 0.35em 0.5em;
-						border-radius: 50%;
-						background-color: #e74c3c;
-						color: white;
-						border: 1px solid #2c3e50;
-						transform: translate(25%, -25%);
-						font-weight: bold;
-
+		.notification-badge {
+			position: absolute;
+			top: 5px;
+			right: 5px;
+			font-size: 0.65rem;
+			padding: 0.35em 0.5em;
+			border-radius: 50%;
+			background-color: #e74c3c;
+			color: white;
+			border: 1px solid #2c3e50;
+			transform: translate(25%, -25%);
+			font-weight: bold;
 		}
 
 
 		/* Toggler (Hamburger Menu) */
-				.navbar-toggler {
-						border-color: rgba(255,255,255,0.5);
-
+		.navbar-toggler {
+			border-color: rgba(255,255,255,0.5);
 		}
 
-				.navbar-toggler-icon {
-						background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-
+		.navbar-toggler-icon {
+			background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
 		}
 
 
 		/* --- Footer --- */
-				footer {
-						background-color: white;
-						border-top: 1px solid #e9ecef;
-						padding: 20px 0;
-						margin-top: auto; /* Pushes footer to bottom */
-						font-size: 0.9rem;
-						color: #6c757d;
-
+		footer {
+			background-color: white;
+			border-top: 1px solid #e9ecef;
+			padding: 20px 0;
+			margin-top: auto; /* Pushes footer to bottom */
+			font-size: 0.9rem;
+			color: #6c757d;
 		}
 
-					footer a {
-							color: #2c3e50;
-							text-decoration: none;
-							font-weight: 600;
+			footer a {
+				color: #2c3e50;
+				text-decoration: none;
+				font-weight: 600;
+			}
 
-		}
-
-						footer a:hover {
-								text-decoration: underline;
-								color: #2c3e50;
-
-		}
+				footer a:hover {
+					text-decoration: underline;
+					color: #2c3e50;
+				}
 
 
 		/* Main Content Spacing */
-				main {
-						padding-bottom: 40px;
-
+		main {
+			padding-bottom: 40px;
 		}
-
 
 	</style>
 </head>
@@ -167,7 +153,7 @@
 					<i class="bi bi-bank2 me-2"></i> LawFirmManagement
 				</a>
 				<button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-						            aria-expanded="false" aria-label="Toggle navigation">
+						      aria-expanded="false" aria-label="Toggle navigation">
 					<span class="navbar-toggler-icon"></span>
 				</button>
 				<div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
@@ -195,6 +181,13 @@
 									<i class="bi bi-cash-stack"></i> Financials
 								</a>
 							</li>
+							<!-- REPORT LINK FOR ADMIN -->
+							<li class="nav-item">
+								<a class="nav-link" asp-controller="Reports" asp-action="Index">
+									<i class="bi bi-bar-chart-line"></i> Reports
+								</a>
+							</li>
+
 						}
 
 						@if (User.IsInRole("Lawyer"))
@@ -207,6 +200,12 @@
 							<li class="nav-item">
 								<a class="nav-link fw-bold" style="color: #2ecc71 !important;" asp-controller="Lawyer" asp-action="Payments">
 									<i class="bi bi-wallet2 me-1"></i> Payments
+								</a>
+							</li>
+							<!-- REPORT LINK FOR LAWYER -->
+							<li class="nav-item">
+								<a class="nav-link" asp-controller="Reports" asp-action="Index">
+									<i class="bi bi-bar-chart-line"></i> Reports
 								</a>
 							</li>
 						}
@@ -222,6 +221,12 @@
 							<li class="nav-item">
 								<a class="nav-link fw-bold" style="color: #2ecc71 !important;" asp-controller="Client" asp-action="PayHistory">
 									<i class="bi bi-receipt me-1"></i> Payment History
+								</a>
+							</li>
+							<!-- REPORT LINK FOR CLIENT -->
+							<li class="nav-item">
+								<a class="nav-link" asp-controller="Reports" asp-action="Index">
+									<i class="bi bi-bar-chart-line"></i> Reports
 								</a>
 							</li>
 						}

@@ -1,0 +1,265 @@
+﻿
+@model LawFirmManagement.Models.ReportViewModel
+@{
+	ViewData["Title"] = "Reports & Analytics";
+}
+
+<!-- Add DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.6/css/dataTables.dataTables.min.css" />
+
+<style>
+		.report-wrapper {
+				background-color: #f8f9fa;
+				padding: 30px 0;
+				min-height: 90vh;
+
+	}
+
+		.filter-card {
+				background: white;
+				padding: 20px;
+				border-radius: 10px;
+				box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+				margin-bottom: 30px;
+				border-top: 4px solid #2c3e50;
+
+	}
+
+		.stat-card {
+				background: white;
+				padding: 20px;
+				border-radius: 8px;
+				text-align: center;
+				border: 1px solid #eee;
+				height: 100%;
+				transition: transform 0.2s;
+
+	}
+
+			.stat-card:hover {
+					transform: translateY(-3px);
+					box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+
+	}
+
+		.stat-val {
+				font-size: 2rem;
+				font-weight: 700;
+				color: #2c3e50;
+
+	}
+
+		.stat-lbl {
+				color: #7f8c8d;
+				font-size: 0.85rem;
+				text-transform: uppercase;
+				font-weight: 600;
+
+	}
+
+
+	/* Tabs */
+		.nav-tabs .nav-link {
+				color: #555;
+				font-weight: 600;
+
+	}
+
+				.nav-tabs .nav-link.active {
+						color: #2c3e50;
+						border-bottom: 3px solid #2c3e50;
+						background: transparent;
+						border-top: none;
+						border-left: none;
+						border-right: none;
+
+		}
+
+		.tab-content {
+				background: white;
+				padding: 20px;
+				border-radius: 0 0 10px 10px;
+				border: 1px solid #dee2e6;
+				border-top: none;
+
+	}
+</style>
+
+<div class="report-wrapper">
+	<div class="container">
+
+		<div class="d-flex justify-content-between align-items-center mb-4">
+			<h2 class="fw-bold text-dark"><i class="bi bi-bar-chart-line-fill me-2"></i> Reports & Analytics</h2>
+
+			<!-- Quick Date Toggles -->
+			<div class="btn-group shadow-sm">
+				<a asp-action="Index" asp-route-reportType="Daily" class="btn btn-outline-dark @(Model.ReportType == "Daily" ? "active" : "")">Daily</a>
+				<a asp-action="Index" asp-route-reportType="Weekly" class="btn btn-outline-dark @(Model.ReportType == "Weekly" ? "active" : "")">Weekly</a>
+				<a asp-action="Index" asp-route-reportType="Monthly" class="btn btn-outline-dark @(Model.ReportType == "Monthly" ? "active" : "")">Monthly</a>
+				<a asp-action="Index" asp-route-reportType="Yearly" class="btn btn-outline-dark @(Model.ReportType == "Yearly" ? "active" : "")">Yearly</a>
+			</div>
+		</div>
+
+		<!-- Filter Form -->
+		<div class="filter-card">
+			<form method="get" class="row g-3 align-items-end">
+				<input type="hidden" name="reportType" value="Custom" />
+				<div class="col-md-4">
+					<label class="form-label fw-bold">From Date</label>
+					<input type="date" name="startDate" value="@Model.StartDate.ToString("yyyy-MM-dd")" class="form-control" />
+				</div>
+				<div class="col-md-4">
+					<label class="form-label fw-bold">To Date</label>
+					<input type="date" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="form-control" />
+				</div>
+				<div class="col-md-4">
+					<button class="btn btn-primary w-100 fw-bold"><i class="bi bi-filter"></i> Apply Custom Filter</button>
+				</div>
+			</form>
+		</div>
+
+		<!-- Summary Stats -->
+		<div class="row g-4 mb-4">
+			<div class="col-md-3">
+				<div class="stat-card">
+					<div class="stat-val text-primary">@Model.TotalCases</div>
+					<div class="stat-lbl">Total Cases</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="stat-card">
+					<div class="stat-val text-success">@Model.ClosedCases</div>
+					<div class="stat-lbl">Cases Closed</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="stat-card">
+					<div class="stat-val text-warning">@Model.HearingList.Count</div>
+					<div class="stat-lbl">Hearings Held</div>
+				</div>
+			</div>
+			<div class="col-md-3">
+				<div class="stat-card">
+					<div class="stat-val text-dark">৳@Model.TotalRevenue.ToString("N0")</div>
+					<div class="stat-lbl">
+						@if (User.IsInRole("Client"))
+						{
+							<span>Total Paid</span>
+						}
+						else
+						{
+
+							<span>Total Earnings</span>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Detail Tabs -->
+		<ul class="nav nav-tabs" id="reportTabs" role="tablist">
+			<li class="nav-item"><a class="nav-link active" id="cases-tab" data-bs-toggle="tab" href="#cases" role="tab">Case History</a></li>
+			<li class="nav-item"><a class="nav-link" id="finance-tab" data-bs-toggle="tab" href="#finance" role="tab">Financials</a></li>
+			<li class="nav-item"><a class="nav-link" id="hearings-tab" data-bs-toggle="tab" href="#hearings" role="tab">Hearing Log</a></li>
+		</ul>
+
+		<div class="tab-content shadow-sm">
+			<!-- CASES TAB -->
+			<div class="tab-pane fade show active" id="cases" role="tabpanel">
+				<table id="tableCases" class="table table-striped table-hover" style="width:100%">
+					<thead><tr><th>Title</th><th>Type</th><th>Start Date</th><th>Status</th></tr></thead>
+					<tbody>
+						@foreach (var c in Model.CaseList)
+						{
+							<tr>
+								<td>@c.CaseTitle</td>
+								<td><span class="badge bg-light text-dark border">@c.CaseType</span></td>
+								<td>@c.StartDate.ToShortDateString()</td>
+								<td>
+									@if (c.Status == LawFirmManagement.Models.CaseStatus.Active)
+									{
+										<span class="badge bg-success">Active</span>
+									}
+									else if (c.Status == LawFirmManagement.Models.CaseStatus.Closed)
+									{
+
+										<span class="badge bg-secondary">Closed</span>
+									}
+									else
+									{
+
+										<span class="badge bg-warning text-dark">Pending</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- FINANCIALS TAB -->
+			<div class="tab-pane fade" id="finance" role="tabpanel">
+				<table id="tableFinance" class="table table-striped table-hover" style="width:100%">
+					<thead><tr><th>Date</th><th>Case</th><th>Method</th><th class="text-end">Amount</th></tr></thead>
+					<tbody>
+						@foreach (var p in Model.PaymentList)
+						{
+							<tr>
+								<td>@p.PaymentDate.ToShortDateString()</td>
+								<td>@p.Case?.CaseTitle</td>
+								<td>@p.PaymentMethod</td>
+								<td class="text-end fw-bold">
+									@if (User.IsInRole("Lawyer"))
+									{
+										<span>৳@p.LawyerShare.ToString("N2")</span>
+									}
+									else if (User.IsInRole("Admin"))
+									{
+
+										<span>৳@p.AdminShare.ToString("N2")</span>
+									}
+									else
+									{
+
+										<span>৳@p.TotalAmount.ToString("N2")</span>
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+
+			<!-- HEARINGS TAB -->
+			<div class="tab-pane fade" id="hearings" role="tabpanel">
+				<table id="tableHearings" class="table table-striped table-hover" style="width:100%">
+					<thead><tr><th>Date</th><th>Case</th><th>Court</th><th>Notes</th></tr></thead>
+					<tbody>
+						@foreach (var h in Model.HearingList)
+						{
+							<tr>
+								<td>@h.HearingDate.ToString("g")</td>
+								<td>@h.Case?.CaseTitle</td>
+								<td>@h.CourtName</td>
+								<td>@h.Notes</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</div>
+
+	</div>
+</div>
+
+@section Scripts {
+	<script src="~/lib/jquery/dist/jquery.min.js"></script>
+	<script src="//cdn.datatables.net/2.3.6/js/dataTables.min.js"></script>
+	<script>
+		$(document).ready(function() {
+			new DataTable('#tableCases');
+			new DataTable('#tableFinance');
+			new DataTable('#tableHearings');
+		});
+	</script>
+}

@@ -4,12 +4,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authorization;
 using LawFirmManagement.Data;
 using LawFirmManagement.Models;
-using LawFirmManagement.Services; // 1. Added Namespace
+using LawFirmManagement.Services;
 using Microsoft.AspNetCore.Hosting;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System;
+using Microsoft.AspNetCore.Http;
 
 namespace LawFirmManagement.Controllers
 {
@@ -19,13 +20,13 @@ namespace LawFirmManagement.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly IWebHostEnvironment _environment;
-        private readonly NotificationService _notificationService; // 2. Add Field
+        private readonly NotificationService _notificationService;
 
         public LawyerController(
             ApplicationDbContext db,
             UserManager<IdentityUser> userManager,
             IWebHostEnvironment environment,
-            NotificationService notificationService) // 3. Inject Service
+            NotificationService notificationService)
         {
             _db = db;
             _userManager = userManager;
@@ -37,15 +38,17 @@ namespace LawFirmManagement.Controllers
         public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
+
             var myCases = await _db.Cases
                 .Include(c => c.Client)
                 .Where(c => c.LawyerId == userId)
                 .OrderByDescending(c => c.Status)
                 .ToListAsync();
+
             return View(myCases);
         }
 
-        // 2. ACCEPT CASE
+        // 2. ACCEPT CASE (Notifications: Client, Admin, Lawyer)
         [HttpPost]
         public async Task<IActionResult> AcceptCase(Guid id)
         {
@@ -54,36 +57,90 @@ namespace LawFirmManagement.Controllers
 
             if (caseObj != null && caseObj.Status == CaseStatus.Pending)
             {
+                // Check Payment Rule (50% Advance)
+                if (caseObj.PaymentStatus == "Unpaid")
+                {
+                    TempData["error"] = "Cannot accept case yet. Client must pay the 50% Advance fee first.";
+                    return RedirectToAction("Index");
+                }
+
                 caseObj.Status = CaseStatus.Active;
                 await _db.SaveChangesAsync();
 
-                // --- NOTIFY CLIENT ---
+                // Notify Client
                 await _notificationService.NotifyUserAsync(
                     caseObj.ClientId,
                     "Case Accepted",
-                    $"Your case <strong>{caseObj.CaseTitle}</strong> is now Active. Lawyer: {User.Identity.Name}"
+                    $"Your case <strong>{caseObj.CaseTitle}</strong> is now Active."
+                );
+
+                // Notify Admin
+                await _notificationService.CreateForAdminsAsync(
+                    "Case Accepted",
+                    $"Lawyer {User.Identity.Name} accepted case: {caseObj.CaseTitle}"
+                );
+
+                // Notify Lawyer (Self Confirmation)
+                await _notificationService.NotifyUserAsync(
+                    userId,
+                    "Assignment Confirmed",
+                    $"You have successfully accepted case: {caseObj.CaseTitle}"
                 );
 
                 TempData["msg"] = "Case accepted successfully.";
             }
-            else
-            {
-                TempData["error"] = "Could not accept case.";
-            }
-
             return RedirectToAction("Index");
         }
 
-        // 3. MANAGE CASE
+        // 3. REJECT CASE (New Action)
+        [HttpPost]
+        public async Task<IActionResult> RejectCase(Guid id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var caseObj = await _db.Cases.FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
+
+            if (caseObj != null && caseObj.Status == CaseStatus.Pending)
+            {
+                caseObj.Status = CaseStatus.Rejected;
+                await _db.SaveChangesAsync();
+
+                // Notify Admin (Action Required)
+                await _notificationService.CreateForAdminsAsync(
+                    "Case Rejected",
+                    $"ACTION REQUIRED: Lawyer {User.Identity.Name} rejected case '{caseObj.CaseTitle}'. Please reassign."
+                );
+
+                // Notify Lawyer (Self Confirmation)
+                await _notificationService.NotifyUserAsync(
+                    userId,
+                    "Case Rejected",
+                    $"You rejected case: {caseObj.CaseTitle}. It has been removed from your active list."
+                );
+
+                TempData["msg"] = "Case rejected. Admin has been notified.";
+            }
+            return RedirectToAction("Index");
+        }
+
+        // 4. MANAGE CASE
         public async Task<IActionResult> ManageCase(Guid id)
         {
             var userId = _userManager.GetUserId(User);
-            var caseDetails = await _db.Cases.Include(c => c.Client).FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
+            var caseDetails = await _db.Cases
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
 
             if (caseDetails == null) return NotFound();
+
             if (caseDetails.Status == CaseStatus.Pending)
             {
-                TempData["error"] = "You must ACCEPT the case first.";
+                TempData["error"] = "You must ACCEPT the case request before you can manage it.";
+                return RedirectToAction("Index");
+            }
+
+            if (caseDetails.Status == CaseStatus.Rejected)
+            {
+                TempData["error"] = "You have rejected this case.";
                 return RedirectToAction("Index");
             }
 
@@ -93,7 +150,7 @@ namespace LawFirmManagement.Controllers
             return View(caseDetails);
         }
 
-        // 4. UPDATE STATUS
+        // 5. UPDATE STATUS
         [HttpPost]
         public async Task<IActionResult> UpdateStatus(Guid caseId, CaseStatus status)
         {
@@ -118,19 +175,13 @@ namespace LawFirmManagement.Controllers
                 caseObj.Status = status;
                 await _db.SaveChangesAsync();
 
-                // --- NOTIFY CLIENT ---
-                await _notificationService.NotifyUserAsync(
-                    caseObj.ClientId,
-                    "Status Update",
-                    $"Case <strong>{caseObj.CaseTitle}</strong> status changed to: <strong>{status}</strong>."
-                );
-
+                await _notificationService.NotifyUserAsync(caseObj.ClientId, "Case Status Update", $"Status is now {status}.");
                 TempData["msg"] = "Status Updated.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
         }
 
-        // 5. ADD HEARING
+        // 6. ADD HEARING
         [HttpPost]
         public async Task<IActionResult> AddHearing(Guid CaseId, DateTime HearingDate, string CourtName, string Notes)
         {
@@ -144,13 +195,12 @@ namespace LawFirmManagement.Controllers
             _db.Hearings.Add(new Hearing { CaseId = CaseId, HearingDate = HearingDate, CourtName = CourtName, Notes = Notes ?? "", ReminderSent = false });
             await _db.SaveChangesAsync();
 
-            // --- NOTIFY CLIENT ---
             if (caseObj != null)
             {
                 await _notificationService.NotifyUserAsync(
                     caseObj.ClientId,
-                    "Hearing Scheduled",
-                    $"New hearing for <strong>{caseObj.CaseTitle}</strong> on {HearingDate.ToShortDateString()} at {CourtName}."
+                    "New Hearing",
+                    $"Hearing on {HearingDate.ToShortDateString()} at {CourtName}."
                 );
             }
 
@@ -158,7 +208,7 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("ManageCase", new { id = CaseId });
         }
 
-        // 6. UPLOAD DOCUMENT
+        // 7. UPLOAD DOCUMENT
         [HttpPost]
         public async Task<IActionResult> UploadDocument(Guid caseId, IFormFile file)
         {
@@ -180,13 +230,12 @@ namespace LawFirmManagement.Controllers
                 _db.CaseDocuments.Add(new CaseDocument { CaseId = caseId, FileName = file.FileName, FilePath = "/documents/" + fileName, UploadedBy = User.Identity?.Name });
                 await _db.SaveChangesAsync();
 
-                // --- NOTIFY CLIENT ---
                 if (caseObj != null)
                 {
                     await _notificationService.NotifyUserAsync(
                         caseObj.ClientId,
                         "Document Uploaded",
-                        $"A new document <strong>{file.FileName}</strong> has been uploaded by your lawyer."
+                        $"New file: {file.FileName}"
                     );
                 }
 
@@ -195,14 +244,35 @@ namespace LawFirmManagement.Controllers
             return RedirectToAction("ManageCase", new { id = caseId });
         }
 
-        // 7. PAYMENTS
+        // 8. PAYMENTS
         [HttpGet]
         public async Task<IActionResult> Payments()
         {
             var userId = _userManager.GetUserId(User);
-            var payments = await _db.Payments.Include(p => p.Case).Include(p => p.Case.Client).Where(p => p.Case.LawyerId == userId).OrderByDescending(p => p.PaymentDate).ToListAsync();
+            var payments = await _db.Payments
+                .Include(p => p.Case)
+                .Include(p => p.Case.Client)
+                .Where(p => p.Case.LawyerId == userId)
+                .OrderByDescending(p => p.PaymentDate)
+                .ToListAsync();
+
             ViewBag.TotalEarnings = payments.Sum(p => p.LawyerShare);
             return View(payments);
+        }
+
+        // 9. DOWNLOAD DOCUMENT
+        public IActionResult DownloadDocument(int id)
+        {
+            var doc = _db.CaseDocuments.Find(id);
+            if (doc == null) return NotFound("Document record not found.");
+
+            var webRoot = _environment.WebRootPath;
+            var relativePath = doc.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var filePath = Path.Combine(webRoot, relativePath);
+
+            if (!System.IO.File.Exists(filePath)) return NotFound("File not found on server.");
+
+            return PhysicalFile(filePath, "application/octet-stream", doc.FileName);
         }
     }
 }

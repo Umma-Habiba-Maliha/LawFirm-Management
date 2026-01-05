@@ -147,7 +147,7 @@
                         <th>Phone</th>
                         <th>Role</th>
                         <th>Specialization</th>
-                        <th>Joined</th>
+                        <th>Joined (Date & Time)</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -186,13 +186,16 @@
                             </td>
 
                             <td>
+                                <!-- UPDATED: Showing Date AND Time -->
                                 @if (profile.DateOfJoining.HasValue)
                                 {
-                                    @profile.DateOfJoining.Value.ToShortDateString()
+                                    <span style="display:none;">@profile.DateOfJoining.Value.ToString("yyyyMMddHHmm")</span> <!-- For Sorting -->
+                                    @profile.DateOfJoining.Value.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
                                 }
                                 else
                                 {
-                                    @profile.CreatedAt.ToShortDateString()
+                                    <span style="display:none;">@profile.CreatedAt.ToString("yyyyMMddHHmm")</span> <!-- For Sorting -->
+                                    @profile.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
                                 }
                             </td>
 

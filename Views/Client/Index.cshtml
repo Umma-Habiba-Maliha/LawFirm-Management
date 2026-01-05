@@ -3,6 +3,9 @@
     ViewData["Title"] = "My Dashboard";
 }
 
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.6/css/dataTables.dataTables.min.css" />
+
 <!-- Custom CSS -->
 <style>
     .client-wrapper {
@@ -60,6 +63,7 @@
         box-shadow: 0 5px 15px rgba(0,0,0,0.05);
         overflow: hidden;
         border: none;
+        padding: 20px; /* Added padding for DataTables controls */
     }
 
     .custom-table thead {
@@ -133,6 +137,27 @@
         color: white;
         font-size: 0.85rem;
     }
+
+    .btn-history {
+        color: #2ecc71;
+        border: 1px solid #2ecc71;
+        background: transparent;
+        font-weight: 600;
+        border-radius: 5px;
+        padding: 8px 20px;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+        .btn-history:hover {
+            background-color: #2ecc71;
+            color: white;
+        }
+
+    /* DataTables Overrides */
+    .dataTables_wrapper .dataTables_length select {
+        padding-right: 25px;
+    }
 </style>
 
 <div class="client-wrapper">
@@ -159,7 +184,11 @@
             </div>
         </div>
 
-        <h4 class="mb-3 text-secondary">My Case Files</h4>
+        <!-- Section Header with Payment History Button -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="text-secondary mb-0">My Case Files</h4>
+            
+        </div>
 
         <!-- MESSAGES -->
         @if (TempData["msg"] != null)
@@ -169,96 +198,84 @@
 
         <div class="table-card">
             <div class="table-responsive">
-                <table class="table custom-table mb-0">
+                <table id="myTable" class="table custom-table mb-0">
                     <thead>
                         <tr>
                             <th>Case Title</th>
                             <th>Type</th>
                             <th>Assigned Lawyer</th>
                             <th>Status</th>
+                            <th>Date Filed</th> <!-- Added Column -->
                             <th class="text-end" style="width: 200px;">Action & Payment</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @if (Model.Any())
-                        {
-                            foreach (var item in Model)
-                            {
-                                <tr>
-                                    <td class="fw-bold">@item.CaseTitle</td>
-                                    <td><span class="badge bg-light text-dark border">@item.CaseType</span></td>
-                                    <td>
-                                        @if (item.Lawyer != null)
-                                        {
-                                            <span class="text-primary"><i class="bi bi-person-fill me-1"></i>@item.Lawyer.Email</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">Unassigned</span>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (item.Status == LawFirmManagement.Models.CaseStatus.Active)
-                                        {
-                                            <span class="status-badge status-active">Active</span>
-                                        }
-                                        else if (item.Status == LawFirmManagement.Models.CaseStatus.Pending)
-                                        {
-                                            <span class="status-badge status-pending">Pending</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="status-badge status-closed">Closed</span>
-                                        }
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <!-- PAYMENT LOGIC START -->
-                                        @if (item.PaymentStatus == "Unpaid")
-                                        {
-                                            <!-- Logic: Can only pay Advance if case is accepted (Active) -->
-                                            @if (item.Status == LawFirmManagement.Models.CaseStatus.Active)
-                                            {
-                                                <a asp-action="Pay" asp-route-id="@item.Id" class="btn-pay bg-danger shadow-sm">
-                                                    <i class="bi bi-credit-card"></i> Pay Advance (20%)
-                                                </a>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-secondary mb-1">Wait for Lawyer</span>
-                                            }
-                                        }
-                                        else if (item.PaymentStatus == "AdvancePaid")
-                                        {
-                                            <!-- Logic: Can only pay Final if case is Closed -->
-                                            @if (item.Status == LawFirmManagement.Models.CaseStatus.Closed)
-                                            {
-                                                <a asp-action="Pay" asp-route-id="@item.Id" class="btn-pay bg-warning text-dark shadow-sm">
-                                                    <i class="bi bi-wallet2"></i> Pay Final (80%)
-                                                </a>
-                                            }
-                                            else
-                                            {
-                                                <span class="badge bg-info text-dark mb-1">Advance Paid</span>
-                                            }
-                                        }
-                                        else if (item.PaymentStatus == "FullyPaid")
-                                        {
-                                            <span class="badge bg-success mb-1">Fully Paid <i class="bi bi-check-circle"></i></span>
-                                        }
-                                        <!-- PAYMENT LOGIC END -->
-
-                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-view">
-                                            View Details
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
+                        @foreach (var item in Model)
                         {
                             <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    You do not have any cases registered yet.
+                                <td class="fw-bold">@item.CaseTitle</td>
+                                <td><span class="badge bg-light text-dark border">@item.CaseType</span></td>
+                                <td>
+                                    @if (item.Lawyer != null)
+                                    {
+                                        <span class="text-primary"><i class="bi bi-person-fill me-1"></i>@item.Lawyer.Email</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic">Unassigned</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.Status == LawFirmManagement.Models.CaseStatus.Active)
+                                    {
+                                        <span class="status-badge status-active">Active</span>
+                                    }
+                                    else if (item.Status == LawFirmManagement.Models.CaseStatus.Pending)
+                                    {
+                                        <span class="status-badge status-pending">Pending</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge status-closed">Closed</span>
+                                    }
+                                </td>
+                                <td>
+                                    <!-- Hidden sort value for proper date sorting -->
+                                    <span style="display:none;">@item.StartDate.ToString("yyyyMMddHHmm")</span>
+                                    @item.StartDate.ToLocalTime().ToString("MMM dd, yyyy h:mm tt")
+                                </td>
+                                <td class="text-end pe-4">
+                                    <!-- PAYMENT LOGIC -->
+                                    @if (item.PaymentStatus == "Unpaid")
+                                    {
+                                        <a asp-action="Pay" asp-route-id="@item.Id" asp-route-type="Advance" class="btn-pay bg-danger shadow-sm mb-1">
+                                            <i class="bi bi-credit-card"></i> Pay Advance (50%)
+                                        </a>
+                                        <a asp-action="Pay" asp-route-id="@item.Id" asp-route-type="Full" class="btn-pay bg-success shadow-sm">
+                                            <i class="bi bi-check-all"></i> Pay Full (100%)
+                                        </a>
+                                    }
+                                    else if (item.PaymentStatus == "AdvancePaid")
+                                    {
+                                        @if (item.Status == LawFirmManagement.Models.CaseStatus.Closed)
+                                        {
+                                            <a asp-action="Pay" asp-route-id="@item.Id" class="btn-pay bg-warning text-dark shadow-sm">
+                                                <i class="bi bi-wallet2"></i> Pay Final (50%)
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-info text-dark mb-1">Advance Paid</span>
+                                        }
+                                    }
+                                    else if (item.PaymentStatus == "FullyPaid")
+                                    {
+                                        <span class="badge bg-success mb-1">Fully Paid <i class="bi bi-check-circle"></i></span>
+                                    }
+
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-view">
+                                        View Details
+                                    </a>
                                 </td>
                             </tr>
                         }
@@ -268,3 +285,19 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <!-- jQuery -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="//cdn.datatables.net/2.3.6/js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = new DataTable('#myTable', {
+                order: [[4, 'desc']] // Sort by Date Filed (Column 4) descending by default
+            });
+        });
+    </script>
+}

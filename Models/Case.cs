@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace LawFirmManagement.Models
 {
-    public enum CaseStatus { Pending, Active, Closed }
+    // FIX: Added 'Rejected' to the Enum so the View works
+    public enum CaseStatus { Pending, Active, Closed, Rejected }
 
     public class Case
     {
@@ -36,7 +37,6 @@ namespace LawFirmManagement.Models
 
         public string PaymentStatus { get; set; } = "Unpaid";
 
-        // NEW: Admin Share Percentage (Default 10%)
         [Required]
         [Range(0, 100)]
         public double AdminSharePercentage { get; set; } = 10.0;

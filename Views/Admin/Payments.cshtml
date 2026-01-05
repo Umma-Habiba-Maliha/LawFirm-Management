@@ -1,9 +1,29 @@
 ﻿@model IEnumerable<LawFirmManagement.Models.Payment>
+
 @{
     ViewData["Title"] = "Financial Dashboard";
 }
 
+<!-- DataTables CSS -->
+<link rel="stylesheet" href="//cdn.datatables.net/2.3.5/css/dataTables.dataTables.min.css" />
+
+<!-- Custom CSS -->
 <style>
+    .finance-wrapper {
+        background-color: #f8f9fa;
+        padding-bottom: 50px;
+    }
+
+    .page-header {
+        color: #2c3e50;
+        font-weight: 700;
+        border-left: 5px solid #2ecc71; /* Money Green */
+        padding-left: 15px;
+        margin-bottom: 30px;
+        padding-top: 20px;
+    }
+
+    /* Stats Cards */
     .money-card {
         background: white;
         border-radius: 10px;
@@ -18,6 +38,7 @@
             color: #7f8c8d;
             text-transform: uppercase;
             font-weight: 700;
+            letter-spacing: 0.5px;
         }
 
         .money-card h3 {
@@ -49,80 +70,182 @@
     .text-lawyer {
         color: #f39c12;
     }
+
+    /* Table */
+    .table-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        overflow: hidden;
+        border: none;
+        padding: 20px;
+    }
+
+    .custom-table thead {
+        background-color: #2c3e50;
+        color: white;
+    }
+
+    .custom-table th {
+        padding: 15px;
+        font-weight: 500;
+        font-size: 0.85rem;
+        border: none;
+    }
+
+    .custom-table td {
+        padding: 15px;
+        vertical-align: middle;
+        color: #34495e;
+        border-bottom: 1px solid #f1f1f1;
+        font-size: 0.9rem;
+    }
+
+    .method-badge {
+        background-color: #ecf0f1;
+        color: #7f8c8d;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .badge-advance {
+        background-color: #e3f2fd;
+        color: #0d47a1;
+    }
+
+    .badge-final {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .badge-full {
+        background-color: #27ae60;
+        color: white;
+    }
+
+    /* Transaction ID Style */
+    .txn-id {
+        font-family: monospace;
+        color: #7f8c8d;
+        font-weight: 600;
+        background: #f8f9fa;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+
+    /* DataTables Overrides */
+    .dataTables_wrapper .dataTables_length select {
+        padding-right: 25px;
+    }
 </style>
 
-<div class="container mt-4">
-    <h2 class="mb-4 text-secondary fw-bold">Financial Overview</h2>
+<div class="finance-wrapper">
+    <div class="container">
+        <h2 class="page-header">Financial Overview</h2>
 
-    <!-- Financial Stats -->
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <div class="money-card border-revenue">
-                <h5>Total Transactions</h5>
-                <h3 class="text-revenue">৳@ViewBag.TotalRevenue</h3>
+        <!-- Financial Stats -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-4">
+                <div class="money-card border-revenue">
+                    <h5>Total Revenue</h5>
+                    <h3 class="text-revenue">৳@ViewBag.TotalRevenue</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="money-card border-admin">
+                    <h5>My Earnings (10%)</h5>
+                    <h3 class="text-admin">৳@ViewBag.TotalAdminShare</h3>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="money-card border-lawyer">
+                    <h5>Payout to Lawyers (90%)</h5>
+                    <h3 class="text-lawyer">৳@ViewBag.TotalLawyerShare</h3>
+                </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="money-card border-admin">
-                <h5>My Earnings (10%)</h5>
-                <h3 class="text-admin">৳@ViewBag.TotalAdminShare</h3>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="money-card border-lawyer">
-                <h5>Payout to Lawyers (90%)</h5>
-                <h3 class="text-lawyer">৳@ViewBag.TotalLawyerShare</h3>
-            </div>
-        </div>
-    </div>
 
-    <h4 class="mb-3 text-secondary">Transaction History</h4>
+        <h4 class="mb-3 text-secondary">Transaction History</h4>
 
-    <div class="card shadow-sm border-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-dark">
-                <tr>
-                    <th>Date</th>
-                    <th>Case / Client</th>
-                    <th>Type</th>
-                    <th>Method</th>
-                    <th class="text-end">Amount</th>
-                    <th class="text-end text-success">Admin Share</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Model.Any())
-                {
-                    foreach (var p in Model)
-                    {
+        <div class="table-card">
+            <div class="table-responsive">
+                <table id="myTable" class="table custom-table mb-0">
+                    <thead>
                         <tr>
-                            <td>@p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy")</td>
-                            <td>
-                                <span class="fw-bold d-block">@p.Case?.CaseTitle</span>
-                                <small class="text-muted">@p.Case?.Client?.Email</small>
-                            </td>
-                            <td>
-                                @if (p.PaymentType == "Advance")
-                                {
-                                    <span class="badge bg-info text-dark">Advance</span>
-                                }
-                                else
-                                {
-
-                                    <span class="badge bg-success">Final</span>
-                                }
-                            </td>
-                            <td><span class="badge bg-light text-dark border">@p.PaymentMethod</span></td>
-                            <td class="text-end fw-bold">৳@p.TotalAmount</td>
-                            <td class="text-end fw-bold text-success">+ ৳@p.AdminShare</td>
+                            <th>Txn ID</th>
+                            <th>Date</th>
+                            <th>Case / Client</th>
+                            <th>Lawyer</th>
+                            <th>Type</th>
+                            <th>Method</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-end text-success">Admin Share</th>
+                            <th class="text-end">Action</th>
                         </tr>
-                    }
-                }
-                else
-                {
-                    <tr><td colspan="6" class="text-center py-5 text-muted">No transactions found.</td></tr>
-                }
-            </tbody>
-        </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model)
+                        {
+                            <tr>
+                                <td><span class="txn-id">#TXN-@p.Id.ToString("D5")</span></td>
+                                <td>
+                                    <span style="display:none;">@p.PaymentDate.ToString("yyyyMMddHHmm")</span>
+                                    @p.PaymentDate.ToLocalTime().ToString("MMM dd, yyyy")<br />
+                                    <small class="text-muted">@p.PaymentDate.ToShortTimeString()</small>
+                                </td>
+                                <td>
+                                    <span class="fw-bold d-block">@p.Case?.CaseTitle</span>
+                                    <small class="text-muted">@p.Case?.Client?.Email</small>
+                                </td>
+                                <td>@p.Case?.Lawyer?.Email</td>
+                                <td>
+                                    @if (p.PaymentType == "Advance")
+                                    {
+                                        <span class="badge badge-advance">Advance (20%)</span>
+                                    }
+                                    else if (p.PaymentType == "Final")
+                                    {
+
+                                        <span class="badge badge-final">Final (80%)</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="badge badge-full">Full Payment</span>
+                                    }
+                                </td>
+                                <td><span class="method-badge">@p.PaymentMethod</span></td>
+                                <td class="text-end fw-bold">৳@p.TotalAmount</td>
+                                <td class="text-end fw-bold text-success">+ ৳@p.AdminShare</td>
+                                <td class="text-end">
+                                    <a asp-controller="Invoice" asp-action="Download" asp-route-id="@p.Id" class="btn btn-sm btn-outline-dark" target="_blank">
+                                        <i class="bi bi-file-earmark-pdf"></i> Invoice
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <!-- JQuery -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="//cdn.datatables.net/2.3.5/js/dataTables.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            let table = new DataTable('#myTable', {
+                order: [[1, 'desc']] // Sort by Date (Column 1)
+            });
+        });
+    </script>
+}
