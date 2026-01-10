@@ -204,7 +204,7 @@ namespace LawFirmManagement.Controllers
         }
 
         // ---------------------------------------------------------
-        // 8. EDIT USER (GET) - NEWLY ADDED
+        // 8. EDIT USER (GET) 
         // ---------------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> EditUser(string id)
@@ -230,7 +230,7 @@ namespace LawFirmManagement.Controllers
         }
 
         // ---------------------------------------------------------
-        // 9. EDIT USER (POST) - NEWLY ADDED
+        // 9. EDIT USER (POST) 
         // ---------------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> EditUser(EditUserViewModel model)

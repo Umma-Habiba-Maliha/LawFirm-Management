@@ -8,7 +8,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using System.Text; // Needed for StringBuilder
+using System.Text;
 
 namespace LawFirmManagement.Controllers
 {
@@ -24,75 +24,70 @@ namespace LawFirmManagement.Controllers
             _userManager = userManager;
         }
 
-        // ----------------------------------------------------
-        // 1. VIEW REPORT (Dashboard)
-        // ----------------------------------------------------
+        // 1. REPORT DASHBOARD
         [HttpGet]
         public async Task<IActionResult> Index(string reportType, DateTime? startDate, DateTime? endDate)
         {
-            var model = await GetReportViewModel(reportType, startDate, endDate);
+            var model = await GetReportData(reportType, startDate, endDate);
             return View(model);
         }
 
-        // ----------------------------------------------------
         // 2. DOWNLOAD REPORT (Generates HTML File)
-        // ----------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> Download(string reportType, DateTime? startDate, DateTime? endDate)
         {
-            var model = await GetReportViewModel(reportType, startDate, endDate);
+            var model = await GetReportData(reportType, startDate, endDate);
 
+            // Build HTML String
             var sb = new StringBuilder();
             sb.Append("<html><head><style>");
-            sb.Append("body { font-family: sans-serif; padding: 20px; }");
-            sb.Append("h1, h3 { color: #2c3e50; }");
-            sb.Append("table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }");
-            sb.Append("th { background-color: #f2f2f2; text-align: left; padding: 8px; border: 1px solid #ddd; }");
-            sb.Append("td { padding: 8px; border: 1px solid #ddd; }");
-            sb.Append(".summary { margin-bottom: 30px; padding: 15px; background: #f9f9f9; border: 1px solid #eee; }");
+            sb.Append("body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; }");
+            sb.Append("h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }");
+            sb.Append(".summary-box { background: #f8f9fa; padding: 20px; border: 1px solid #ddd; margin-bottom: 30px; }");
+            sb.Append("table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px; }");
+            sb.Append("th { background-color: #2c3e50; color: white; text-align: left; padding: 10px; }");
+            sb.Append("td { padding: 10px; border-bottom: 1px solid #eee; }");
             sb.Append("</style></head><body>");
 
-            sb.Append($"<h1>{model.ReportType} Report</h1>");
-            sb.Append($"<p><strong>Generated On:</strong> {DateTime.Now:dd MMM yyyy}<br/>");
-            sb.Append($"<strong>Period:</strong> {model.StartDate:dd MMM yyyy} to {model.EndDate:dd MMM yyyy}</p>");
+            sb.Append($"<h1>Law Firm Report: {model.ReportType}</h1>");
+            sb.Append($"<p>Generated: {DateTime.Now:dd MMM yyyy HH:mm} | Period: {model.StartDate:dd MMM yyyy} to {model.EndDate:dd MMM yyyy}</p>");
 
-            // Summary
-            sb.Append("<div class='summary'><h3>Executive Summary</h3>");
-            sb.Append($"<p>Total Cases: <b>{model.TotalCases}</b> | ");
-            sb.Append($"New: <b>{model.NewCases}</b> | ");
-            sb.Append($"Closed: <b>{model.ClosedCases}</b></p>");
-            sb.Append($"<h3>Financials: {model.TotalRevenue:N0} BDT</h3></div>");
+            sb.Append("<div class='summary-box'>");
+            sb.Append($"<strong>Total Cases:</strong> {model.TotalCases} &nbsp;|&nbsp; ");
+            sb.Append($"<strong>Closed:</strong> {model.ClosedCases} &nbsp;|&nbsp; ");
+            sb.Append($"<strong>Revenue:</strong> {model.TotalRevenue:N2} BDT");
+            sb.Append("</div>");
 
-            // Case Table
-            sb.Append("<h3>Case Details</h3><table>");
-            sb.Append("<thead><tr><th>Title</th><th>Type</th><th>Date</th><th>Status</th></tr></thead><tbody>");
-            foreach (var c in model.CaseList)
+            if (model.CaseList.Any())
             {
-                sb.Append($"<tr><td>{c.CaseTitle}</td><td>{c.CaseType}</td><td>{c.StartDate:dd/MM/yyyy}</td><td>{c.Status}</td></tr>");
+                sb.Append("<h3>Case History</h3><table><thead><tr><th>Title</th><th>Type</th><th>Start Date</th><th>Status</th></tr></thead><tbody>");
+                foreach (var c in model.CaseList)
+                {
+                    sb.Append($"<tr><td>{c.CaseTitle}</td><td>{c.CaseType}</td><td>{c.StartDate:dd-MMM-yyyy}</td><td>{c.Status}</td></tr>");
+                }
+                sb.Append("</tbody></table>");
             }
-            sb.Append("</tbody></table>");
 
-            // Payment Table
-            sb.Append("<h3>Financial Transactions</h3><table>");
-            sb.Append("<thead><tr><th>Date</th><th>Method</th><th>Amount</th></tr></thead><tbody>");
-            foreach (var p in model.PaymentList)
+            if (model.PaymentList.Any())
             {
-                // Logic to show correct share in download based on role could be added here, currently showing Total/Share based on viewmodel
-                decimal displayAmount = User.IsInRole("Admin") ? p.TotalAmount : (User.IsInRole("Lawyer") ? p.LawyerShare : p.TotalAmount);
-                sb.Append($"<tr><td>{p.PaymentDate:dd/MM/yyyy}</td><td>{p.PaymentMethod}</td><td>{displayAmount:N2}</td></tr>");
+                sb.Append("<h3>Financial Transactions</h3><table><thead><tr><th>Date</th><th>Case</th><th>Method</th><th>Amount</th></tr></thead><tbody>");
+                foreach (var p in model.PaymentList)
+                {
+                    decimal amount = User.IsInRole("Admin") ? p.TotalAmount : (User.IsInRole("Lawyer") ? p.LawyerShare : p.TotalAmount);
+                    sb.Append($"<tr><td>{p.PaymentDate:dd-MMM-yyyy}</td><td>{p.Case?.CaseTitle}</td><td>{p.PaymentMethod}</td><td>{amount:N2}</td></tr>");
+                }
+                sb.Append("</tbody></table>");
             }
-            sb.Append("</tbody></table>");
 
             sb.Append("</body></html>");
 
+            // Return as file
             byte[] fileBytes = Encoding.UTF8.GetBytes(sb.ToString());
             return File(fileBytes, "text/html", $"Report_{model.ReportType}_{DateTime.Now:yyyyMMdd}.html");
         }
 
-        // ----------------------------------------------------
-        // HELPER: Shared Logic for Filtering
-        // ----------------------------------------------------
-        private async Task<ReportViewModel> GetReportViewModel(string reportType, DateTime? startDate, DateTime? endDate)
+        // HELPER: Fetch Data Logic (Shared by View and Download)
+        private async Task<ReportViewModel> GetReportData(string reportType, DateTime? startDate, DateTime? endDate)
         {
             var user = await _userManager.GetUserAsync(User);
             var userId = user?.Id;
@@ -102,22 +97,21 @@ namespace LawFirmManagement.Controllers
             DateTime start = startDate ?? DateTime.UtcNow.AddMonths(-1);
             DateTime end = endDate ?? DateTime.UtcNow;
 
-            if (!string.IsNullOrEmpty(reportType))
+            if (!string.IsNullOrEmpty(reportType) && reportType != "Custom")
             {
                 var now = DateTime.UtcNow;
-                switch (reportType)
-                {
-                    case "Daily": start = now.Date; end = now.Date.AddDays(1).AddTicks(-1); break;
-                    case "Weekly": start = now.AddDays(-7); end = now; break;
-                    case "Monthly": start = now.AddMonths(-1); end = now; break;
-                    case "Yearly": start = now.AddYears(-1); end = now; break;
-                }
+                if (reportType == "Daily") { start = now.Date; end = now.Date.AddDays(1).AddTicks(-1); }
+                else if (reportType == "Weekly") { start = now.AddDays(-7); end = now; }
+                else if (reportType == "Monthly") { start = now.AddMonths(-1); end = now; }
+                else if (reportType == "Yearly") { start = now.AddYears(-1); end = now; }
             }
 
+            // Queries
             var casesQuery = _db.Cases.Include(c => c.Client).Include(c => c.Lawyer).Where(c => c.StartDate >= start && c.StartDate <= end);
             var paymentsQuery = _db.Payments.Include(p => p.Case).Where(p => p.PaymentDate >= start && p.PaymentDate <= end);
             var hearingsQuery = _db.Hearings.Include(h => h.Case).Where(h => h.HearingDate >= start && h.HearingDate <= end);
 
+            // Role Filter
             if (userRole == "Lawyer")
             {
                 casesQuery = casesQuery.Where(c => c.LawyerId == userId);

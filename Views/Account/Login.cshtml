@@ -7,12 +7,11 @@
 <style>
     /* Page Background */
     .login-wrapper {
-        /* Add your background image here */
-        background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('/images/login-bg.jpg'); /* Ensure this image exists in wwwroot/images */
+        background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('/images/legal-bg.jpg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
-        min-height: 85vh; /* Takes up most of the screen height */
+        min-height: 85vh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -24,27 +23,19 @@
         background: white;
         padding: 3rem 2.5rem;
         border-radius: 10px;
-        box-shadow: 0 15px 35px rgba(0,0,0,0.2); /* Stronger shadow for depth */
+        box-shadow: 0 15px 35px rgba(0,0,0,0.2);
         width: 100%;
         max-width: 420px;
-        border-top: 5px solid #2c3e50; /* Navy blue accent bar */
+        border-top: 5px solid #2c3e50;
         position: relative;
     }
 
-    /* Logo Styling */
-    .login-logo {
-        display: block;
-        margin: 0 auto 20px auto;
-        height: 60px; /* Adjust based on your logo size */
-        width: auto;
-    }
-
-    /* Headings */
-    .login-card h2 {
-        color: #2c3e50;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-    }
+        /* Headings */
+        .login-card h2 {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
 
     /* Input fields */
     .form-control {
@@ -61,7 +52,7 @@
 
     /* The Login Button */
     .btn-login {
-        background-color: #2c3e50; /* Navy Blue */
+        background-color: #2c3e50;
         border-color: #2c3e50;
         color: white;
         height: 48px;
@@ -78,26 +69,32 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
-    /* The Register Link */
-    .register-link a {
+    /* Links */
+    .register-link a, .forgot-link {
         color: #2c3e50;
         text-decoration: none;
         font-weight: 600;
+        transition: color 0.2s;
     }
 
-        .register-link a:hover {
+        .register-link a:hover, .forgot-link:hover {
             text-decoration: underline;
+            color: #3498db;
         }
 </style>
 
 <div class="login-wrapper">
     <div class="login-card">
 
-        <!-- OPTIONAL: Add your Logo Here -->
-        <!-- <img src="/images/logo.png" alt="Law Firm Logo" class="login-logo" /> -->
-
         <h2 class="text-center">Member Login</h2>
         <p class="text-center text-muted mb-4">Welcome back to the Firm</p>
+
+        @if (TempData["msg"] != null)
+        {
+            <div class="alert alert-success text-center small py-2">
+                @TempData["msg"]
+            </div>
+        }
 
         <form asp-action="Login" method="post">
 
@@ -111,10 +108,16 @@
             </div>
 
             <div class="mb-4">
-                <label class="form-label fw-bold small text-muted">Password</label>
+                <div class="d-flex justify-content-between">
+                    <label class="form-label fw-bold small text-muted">Password</label>
+
+                    <!-- THE FORGOT PASSWORD LINK IS HERE -->
+                    <a asp-controller="Account" asp-action="ForgotPassword" class="forgot-link small">Forgot Password?</a>
+                </div>
+
                 <div class="input-group">
                     <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock"></i></span>
-                    <input asp-for="Password" type="password" class="form-control border-start-0 ps-0" placeholder="Enter your Passowrd" />
+                    <input asp-for="Password" type="password" class="form-control border-start-0 ps-0" placeholder="Enter Your Password" />
                 </div>
                 <span asp-validation-for="Password" class="text-danger small"></span>
             </div>

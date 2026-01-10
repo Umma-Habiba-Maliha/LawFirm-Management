@@ -32,9 +32,9 @@ namespace LawFirmManagement.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        // ---------------------------------------------------------
+        
         // NEW FIELDS FOR LAWYERS
-        // ---------------------------------------------------------
+        
         public string? Specialization { get; set; } // Civil, Criminal, etc.
         public DateTime? DateOfJoining { get; set; }
     }
