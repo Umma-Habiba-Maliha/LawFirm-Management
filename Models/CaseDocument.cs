@@ -14,7 +14,7 @@ namespace LawFirmManagement.Models
         public Guid CaseId { get; set; }
 
         [ForeignKey("CaseId")]
-        public virtual Case? Case { get; set; }
+        public virtual Case ?Case { get; set; }
 
         // The original name of the file (e.g., "Contract.pdf")
         [Required]

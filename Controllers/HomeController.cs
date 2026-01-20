@@ -18,6 +18,13 @@ namespace LawFirmManagement.Controllers
             return View();
         }
 
+        // --- NEW ACTION: About Us ---
+        public IActionResult About()
+        {
+            return View();
+        }
+        // ----------------------------
+
         public IActionResult Privacy()
         {
             return View();

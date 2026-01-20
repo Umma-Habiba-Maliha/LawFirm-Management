@@ -161,6 +161,9 @@
 						<li class="nav-item">
 							<a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
 						</li>
+						<li class="nav-item">
+							<a class="nav-link" asp-area="" asp-controller="Home" asp-action="About">About Us</a>
+						</li>
 
 						@if (User.IsInRole("Admin"))
 						{
@@ -177,7 +180,7 @@
 							</li>
 
 							<li class="nav-item">
-								<a class="nav-link fw-bold" style="color: #2ecc71 !important;" asp-controller="Admin" asp-action="Payments">
+								<a class="nav-link" asp-controller="Admin" asp-action="Payments">
 									<i class="bi bi-cash-stack"></i> Financials
 								</a>
 							</li>
@@ -193,12 +196,12 @@
 						@if (User.IsInRole("Lawyer"))
 						{
 							<li class="nav-item">
-								<a class="nav-link fw-bold" asp-controller="Lawyer" asp-action="Index">
+								<a class="nav-link" asp-controller="Lawyer" asp-action="Index">
 									<i class="bi bi-speedometer2 me-1"></i> Dashboard
 								</a>
 							</li>
 							<li class="nav-item">
-								<a class="nav-link fw-bold" style="color: #2ecc71 !important;" asp-controller="Lawyer" asp-action="Payments">
+								<a class="nav-link" asp-controller="Lawyer" asp-action="Payments">
 									<i class="bi bi-wallet2 me-1"></i> Payments
 								</a>
 							</li>
@@ -213,13 +216,13 @@
 						@if (User.IsInRole("Client"))
 						{
 							<li class="nav-item">
-								<a class="nav-link fw-bold" asp-controller="Client" asp-action="Index">
+								<a class="nav-link" asp-controller="Client" asp-action="Index">
 									<i class="bi bi-speedometer2 me-1"></i> Dashboard
 								</a>
 							</li>
 
 							<li class="nav-item">
-								<a class="nav-link fw-bold" style="color: #2ecc71 !important;" asp-controller="Client" asp-action="PayHistory">
+								<a class="nav-link" asp-controller="Client" asp-action="PayHistory">
 									<i class="bi bi-receipt me-1"></i> Payment History
 								</a>
 							</li>

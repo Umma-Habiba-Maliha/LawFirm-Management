@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using LawFirmManagement.Models;
 using LawFirmManagement.Data; // Needed for PendingUsers
@@ -38,18 +39,18 @@ namespace LawFirmManagement.Controllers
             _roleManager = roleManager;
         }
 
-        // ---------------------------------------------------------
+
         // 1. LOGIN (GET)
-        // ---------------------------------------------------------
+
         [HttpGet]
         public IActionResult Login()
         {
             return View();
         }
 
-        // ---------------------------------------------------------
+
         // 2. LOGIN (POST) - With Smart Redirection
-        // ---------------------------------------------------------
+
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
@@ -349,10 +350,10 @@ namespace LawFirmManagement.Controllers
     public class ResetPasswordViewModel
     {
         [Required, EmailAddress]
-        public string Email { get; set; } = "";
+        public string? Email { get; set; } = "";
 
         [Required]
-        public string Token { get; set; } = "";
+        public string ?Token { get; set; } = "";
 
         [Required, DataType(DataType.Password)]
         public string Password { get; set; } = "";

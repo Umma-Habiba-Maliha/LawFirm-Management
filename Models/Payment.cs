@@ -13,7 +13,7 @@ namespace LawFirmManagement.Models
         public Guid CaseId { get; set; }
 
         [ForeignKey("CaseId")]
-        public virtual Case? Case { get; set; }
+        public virtual Case ?Case { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; } // The amount paid in this specific transaction

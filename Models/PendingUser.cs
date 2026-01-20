@@ -11,7 +11,7 @@ namespace LawFirmManagement.Models
         public Guid Id { get; set; } = Guid.NewGuid();
 
         [Required, StringLength(250)]
-        public string FullName { get; set; } = "";
+        public string ?FullName { get; set; } = "";
 
         [Required, EmailAddress, StringLength(250)]
         public string Email { get; set; } = "";

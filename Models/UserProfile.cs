@@ -17,7 +17,7 @@ namespace LawFirmManagement.Models
         public virtual Microsoft.AspNetCore.Identity.IdentityUser? User { get; set; }
 
         [Required, StringLength(250)]
-        public string FullName { get; set; } = "";
+        public string ?FullName { get; set; } = "";
 
         [StringLength(50)]
         public string? Phone { get; set; }
