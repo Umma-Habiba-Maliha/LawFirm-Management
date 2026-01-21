@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LawFirmManagement.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260105211101_Report")]
-    partial class Report
+    [Migration("20260120203636_All")]
+    partial class All
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

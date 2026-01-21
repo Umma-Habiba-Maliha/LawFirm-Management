@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -32,7 +31,9 @@ namespace LawFirmManagement.Controllers
             _emailSender = emailSender;
         }
 
+        // ---------------------------------------------------------
         // 1. REGISTER ADMIN
+        // ---------------------------------------------------------
         [HttpGet]
         [AllowAnonymous]
         public IActionResult RegisterAdmin() => View();
@@ -65,7 +66,9 @@ namespace LawFirmManagement.Controllers
             return View();
         }
 
+        // ---------------------------------------------------------
         // 2. USER LIST
+        // ---------------------------------------------------------
         public IActionResult Users()
         {
             var profiles = _db.UserProfiles
@@ -74,48 +77,43 @@ namespace LawFirmManagement.Controllers
             return View(profiles);
         }
 
-        // 3. DELETE USER
+        // ---------------------------------------------------------
+        // 3. DELETE USER (UPDATED: SOFT DELETE / DEACTIVATE)
+        // ---------------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> DeleteUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
             if (user == null) return RedirectToAction("Users");
 
-            // Remove Related Cases
-            var userCases = _db.Cases.Where(c => c.ClientId == id || c.LawyerId == id).ToList();
-            if (userCases.Any())
-            {
-                _db.Cases.RemoveRange(userCases);
-                await _db.SaveChangesAsync();
-            }
+            // --- SOFT DELETE IMPLEMENTATION ---
+            // Instead of deleting from DB (which causes foreign key errors),
+            // we simply lock the account forever.
 
-            // Remove Profile
-            var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == id);
-            if (profile != null)
-            {
-                _db.UserProfiles.Remove(profile);
-                await _db.SaveChangesAsync();
-            }
+            // 1. Enable Lockout
+            await _userManager.SetLockoutEnabledAsync(user, true);
 
-            // Remove Pending Request
-            var pending = await _db.PendingUsers.FirstOrDefaultAsync(p => p.Email == user.Email);
-            if (pending != null)
-            {
-                _db.PendingUsers.Remove(pending);
-                await _db.SaveChangesAsync();
-            }
+            // 2. Lock them out until the end of time (Year 9999)
+            await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
 
-            // Remove User
-            await _userManager.DeleteAsync(user);
+            // 3. Update Security Stamp to invalidate current cookies (force logout immediately)
+            await _userManager.UpdateSecurityStampAsync(user);
+
+            // Note: The user remains in the database, preserving all history (Cases, Payments).
+            // They just cannot log in anymore.
 
             return RedirectToAction("Users");
         }
 
+        // ---------------------------------------------------------
         // 4. CREATE LAWYER (GET)
+        // ---------------------------------------------------------
         [HttpGet]
         public IActionResult CreateLawyer() => View();
 
+        // ---------------------------------------------------------
         // 5. CREATE LAWYER (POST)
+        // ---------------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> CreateLawyer(CreateLawyerViewModel model)
         {
@@ -165,7 +163,9 @@ namespace LawFirmManagement.Controllers
             return View(model);
         }
 
+        // ---------------------------------------------------------
         // 6. LAWYER CASE HISTORY
+        // ---------------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> LawyerCases(string lawyerId)
         {
@@ -186,7 +186,9 @@ namespace LawFirmManagement.Controllers
             return View(history);
         }
 
+        // ---------------------------------------------------------
         // 7. FINANCIAL DASHBOARD
+        // ---------------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> Payments()
         {
@@ -205,7 +207,7 @@ namespace LawFirmManagement.Controllers
         }
 
         // ---------------------------------------------------------
-        // 8. EDIT USER (GET) 
+        // 8. EDIT USER (GET)
         // ---------------------------------------------------------
         [HttpGet]
         public async Task<IActionResult> EditUser(string id)
@@ -231,7 +233,7 @@ namespace LawFirmManagement.Controllers
         }
 
         // ---------------------------------------------------------
-        // 9. EDIT USER (POST) 
+        // 9. EDIT USER (POST)
         // ---------------------------------------------------------
         [HttpPost]
         public async Task<IActionResult> EditUser(EditUserViewModel model)
@@ -243,16 +245,13 @@ namespace LawFirmManagement.Controllers
 
             if (user == null || profile == null) return NotFound();
 
-            // Update Login Info
             user.Email = model.Email;
             user.UserName = model.Email;
             user.PhoneNumber = model.Phone;
 
-            // Update Profile Info
             profile.FullName = model.FullName;
             profile.Phone = model.Phone;
 
-            // Conditional Update: Only update Lawyer fields if user is a Lawyer
             if (model.Role == "Lawyer")
             {
                 profile.Specialization = model.Specialization;

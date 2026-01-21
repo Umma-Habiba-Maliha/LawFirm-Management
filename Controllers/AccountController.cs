@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using LawFirmManagement.Models;
 using LawFirmManagement.Data; // Needed for PendingUsers
@@ -56,7 +55,8 @@ namespace LawFirmManagement.Controllers
         {
             if (ModelState.IsValid)
             {
-                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false); // Removed RememberMe for simplicity if not in model
+                // This method checks password AND if the account is locked out
+                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, false, false);
 
                 if (result.Succeeded)
                 {
@@ -84,23 +84,36 @@ namespace LawFirmManagement.Controllers
                     return RedirectToAction("Index", "Home");
                 }
 
-                ModelState.AddModelError("", "Invalid login attempt.");
+                // --- NEW CHECK: HANDLE SOFT DELETED (LOCKED) USERS ---
+                if (result.IsLockedOut)
+                {
+                    ModelState.AddModelError(string.Empty, "Your account has been deactivated by the administrator.");
+                    return View(model);
+                }
+
+                if (result.IsNotAllowed)
+                {
+                    ModelState.AddModelError(string.Empty, "Your account is not allowed to login (email not confirmed or other reason).");
+                    return View(model);
+                }
+
+                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
             return View(model);
         }
 
-        // ---------------------------------------------------------
+
         // 3. REGISTER PENDING (GET) - The Public Form
-        // ---------------------------------------------------------
+
         [HttpGet]
         public IActionResult RegisterPending()
         {
             return View();
         }
 
-        // ---------------------------------------------------------
+
         // 4. REGISTER PENDING (POST) - Saves to "Waiting Room"
-        // ---------------------------------------------------------
+
         [HttpPost]
         public async Task<IActionResult> RegisterPending(RegisterPendingViewModel model)
         {
@@ -151,6 +164,17 @@ namespace LawFirmManagement.Controllers
                 // 3. Send SignalR Alert (Live Popup)
                 await _hub.Clients.Group("Admins").SendAsync("NewPendingUser", pendingUser.FullName);
 
+                // 4. Notify Lawyers via Email
+                var lawyers = await _userManager.GetUsersInRoleAsync("Lawyer");
+                foreach (var lawyer in lawyers)
+                {
+                    if (!string.IsNullOrEmpty(lawyer.Email))
+                    {
+                        await _emailSender.SendEmailAsync(lawyer.Email, "New Client Registration",
+                            $"A new client named <b>{pendingUser.FullName}</b> has registered and is pending Admin approval.");
+                    }
+                }
+
                 // Show success message
                 ViewBag.Message = "Your registration request has been submitted successfully! An administrator will review it shortly.";
                 ModelState.Clear(); // Clear the form
@@ -160,9 +184,9 @@ namespace LawFirmManagement.Controllers
             return View(model);
         }
 
-        // ----------------------------------------------------
-        // ADMIN PENDING LIST (Helper actions if needed here or keep in AdminController)
-        // ----------------------------------------------------
+
+        // ADMIN PENDING LIST (Helper actions  AdminController)
+
         [HttpGet]
         [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
         public async Task<IActionResult> AdminPendingList()
@@ -224,7 +248,7 @@ namespace LawFirmManagement.Controllers
             await _db.SaveChangesAsync();
 
             // SEND EMAIL TO USER
-            await _emailSender.SendEmailAsync(user.Email, "Registration Approved",
+            await _emailSender.SendEmailAsync(user.Email, "Registration Approved in Lawfirm",
                 $"Your account is approved. Password: <b>{tempPassword}</b>");
 
             return RedirectToAction("AdminPendingList");
@@ -243,38 +267,38 @@ namespace LawFirmManagement.Controllers
             await _db.SaveChangesAsync();
 
             await _emailSender.SendEmailAsync(pending.Email, "Registration Update",
-                "Your registration request was rejected.");
+                "Your registration in Lawfirm request was rejected.");
 
             return RedirectToAction("AdminPendingList");
         }
 
-        // ---------------------------------------------------------
+
         // 5. LOGOUT
-        // ---------------------------------------------------------
+
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
             return RedirectToAction("Login");
         }
 
-        // ---------------------------------------------------------
+
         // 6. ACCESS DENIED
-        // ---------------------------------------------------------
+
         public IActionResult AccessDenied()
         {
             return View();
         }
 
-        // ----------------------------------------------------
+
         // 7. FORGOT PASSWORD (GET)
-        // ----------------------------------------------------
+
         [HttpGet]
         [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public IActionResult ForgotPassword() => View();
 
-        // ----------------------------------------------------
+
         // 8. FORGOT PASSWORD (POST)
-        // ----------------------------------------------------
+
         [HttpPost]
         [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
@@ -353,7 +377,7 @@ namespace LawFirmManagement.Controllers
         public string? Email { get; set; } = "";
 
         [Required]
-        public string ?Token { get; set; } = "";
+        public string? Token { get; set; } = "";
 
         [Required, DataType(DataType.Password)]
         public string Password { get; set; } = "";

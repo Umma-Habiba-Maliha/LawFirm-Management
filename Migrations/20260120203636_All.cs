@@ -5,7 +5,7 @@
 namespace LawFirmManagement.Migrations
 {
     /// <inheritdoc />
-    public partial class Report : Migration
+    public partial class All : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

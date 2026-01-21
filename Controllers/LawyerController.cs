@@ -98,21 +98,11 @@ namespace LawFirmManagement.Controllers
         public async Task<IActionResult> ManageCase(Guid id)
         {
             var userId = _userManager.GetUserId(User);
-            var caseDetails = await _db.Cases
-                .Include(c => c.Client)
-                .FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
+            var caseDetails = await _db.Cases.Include(c => c.Client).FirstOrDefaultAsync(c => c.Id == id && c.LawyerId == userId);
 
             if (caseDetails == null) return NotFound();
-            if (caseDetails.Status == CaseStatus.Pending)
-            {
-                TempData["error"] = "You must ACCEPT the case request before you can manage it.";
-                return RedirectToAction("Index");
-            }
-            if (caseDetails.Status == CaseStatus.Rejected)
-            {
-                TempData["error"] = "You have rejected this case.";
-                return RedirectToAction("Index");
-            }
+            if (caseDetails.Status == CaseStatus.Pending) { TempData["error"] = "You must ACCEPT the case request first."; return RedirectToAction("Index"); }
+            if (caseDetails.Status == CaseStatus.Rejected) { TempData["error"] = "You have rejected this case."; return RedirectToAction("Index"); }
 
             ViewBag.Hearings = await _db.Hearings.Where(h => h.CaseId == id).OrderBy(h => h.HearingDate).ToListAsync();
             ViewBag.Documents = await _db.CaseDocuments.Where(d => d.CaseId == id).OrderByDescending(d => d.UploadedAt).ToListAsync();
@@ -130,28 +120,21 @@ namespace LawFirmManagement.Controllers
                 if (status == CaseStatus.Closed)
                 {
                     int hearingCount = await _db.Hearings.CountAsync(h => h.CaseId == caseId);
-                    if (hearingCount < 2)
-                    {
-                        TempData["error"] = $"Cannot close! Needs at least 2 hearings. Current: {hearingCount}.";
-                        return RedirectToAction("ManageCase", new { id = caseId });
-                    }
+                    if (hearingCount < 1) { TempData["error"] = "Cannot close! Needs at least 1 hearings."; return RedirectToAction("ManageCase", new { id = caseId }); }
                     caseObj.EndDate = DateTime.UtcNow;
                 }
-                else
-                {
-                    caseObj.EndDate = null;
-                }
+                else { caseObj.EndDate = null; }
 
                 caseObj.Status = status;
                 await _db.SaveChangesAsync();
 
-                await _notificationService.NotifyUserAsync(caseObj.ClientId, "Case Status Update", $"Status is now {status}.");
+                await _notificationService.NotifyUserAsync(caseObj.ClientId, "Status Update", $"Case '{caseObj.CaseTitle}' status: {status}.");
                 TempData["msg"] = "Status Updated.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
         }
 
-        // 6. ADD HEARING (Updated with Conflict Logic)
+        // 6. ADD HEARING
         [HttpPost]
         public async Task<IActionResult> AddHearing(Guid CaseId, DateTime HearingDate, string CourtName, string Notes)
         {
@@ -162,93 +145,87 @@ namespace LawFirmManagement.Controllers
                 return RedirectToAction("ManageCase", new { id = CaseId });
             }
 
+            // Conflict Check
             var lawyerId = _userManager.GetUserId(User);
-
-            // --- CONFLICT CHECK START ---
-            // Check if THIS Lawyer or THIS Client already has a hearing at the exact same time
-            bool conflict = await _db.Hearings
-                .Include(h => h.Case)
-                .AnyAsync(h =>
-                    h.HearingDate == HearingDate &&
-                    (h.Case.LawyerId == lawyerId || h.Case.ClientId == caseObj.ClientId)
-                );
-
+            bool conflict = await _db.Hearings.Include(h => h.Case).AnyAsync(h => h.HearingDate == HearingDate && (h.Case.LawyerId == lawyerId || h.Case.ClientId == caseObj.ClientId));
             if (conflict)
             {
-                TempData["error"] = $"Scheduling Conflict! You or the Client already have a hearing scheduled at {HearingDate:g}.";
+                TempData["error"] = $"Scheduling Conflict! You or the Client are busy at {HearingDate:g}.";
                 return RedirectToAction("ManageCase", new { id = CaseId });
             }
-            // --- CONFLICT CHECK END ---
 
             _db.Hearings.Add(new Hearing { CaseId = CaseId, HearingDate = HearingDate, CourtName = CourtName, Notes = Notes ?? "", ReminderSent = false });
             await _db.SaveChangesAsync();
 
-            if (caseObj != null)
-            {
-                await _notificationService.NotifyUserAsync(caseObj.ClientId, "New Hearing", $"Hearing on {HearingDate.ToShortDateString()} at {CourtName}.");
-            }
-
+            if (caseObj != null) await _notificationService.NotifyUserAsync(caseObj.ClientId, "New Hearing", $"Hearing on {HearingDate:d}.");
             TempData["msg"] = "Hearing added.";
             return RedirectToAction("ManageCase", new { id = CaseId });
         }
 
-        // 7. EDIT HEARING (GET)
+        // 7. EDIT HEARING (GET) - NEW: Block if Closed
         [HttpGet]
         public async Task<IActionResult> EditHearing(int id)
         {
             var hearing = await _db.Hearings.FindAsync(id);
             if (hearing == null) return NotFound();
 
-            var userId = _userManager.GetUserId(User);
             var caseObj = await _db.Cases.FindAsync(hearing.CaseId);
+            var userId = _userManager.GetUserId(User);
 
             if (caseObj == null || caseObj.LawyerId != userId) return NotFound("Access Denied");
+
+            // --- CHECK: IS CASE CLOSED? ---
+            if (caseObj.Status == CaseStatus.Closed)
+            {
+                TempData["error"] = "Cannot edit hearing. This case is CLOSED.";
+                return RedirectToAction("ManageCase", new { id = hearing.CaseId });
+            }
 
             return View(hearing);
         }
 
-        // 8. EDIT HEARING (POST)
+        // 8. EDIT HEARING (POST) - NEW: Block if Closed
         [HttpPost]
         public async Task<IActionResult> EditHearing(Hearing model)
         {
-            if (!ModelState.IsValid) return View(model);
-
-            var hearing = await _db.Hearings.Include(h => h.Case).FirstOrDefaultAsync(h => h.Id == model.Id);
-            if (hearing == null) return NotFound();
-
-            var userId = _userManager.GetUserId(User);
-            if (hearing.Case.LawyerId != userId) return NotFound("Access Denied");
-
-            // --- CONFLICT CHECK (EDIT) ---
-            bool conflict = await _db.Hearings
-                .Include(h => h.Case)
-                .AnyAsync(h =>
-                    h.HearingDate == model.HearingDate &&
-                    h.Id != model.Id && // Don't check against self
-                    (h.Case.LawyerId == userId || h.Case.ClientId == hearing.Case.ClientId)
-                );
-
-            if (conflict)
+            if (ModelState.IsValid)
             {
-                ModelState.AddModelError("HearingDate", "Scheduling Conflict: You or the Client are busy at this time.");
-                return View(model);
+                var hearing = await _db.Hearings.Include(h => h.Case).FirstOrDefaultAsync(h => h.Id == model.Id);
+                if (hearing == null) return NotFound();
+
+                var userId = _userManager.GetUserId(User);
+                if (hearing.Case.LawyerId != userId) return NotFound("Access Denied");
+
+                // --- CHECK: IS CASE CLOSED? ---
+                if (hearing.Case.Status == CaseStatus.Closed)
+                {
+                    TempData["error"] = "Cannot edit hearing. This case is CLOSED.";
+                    return RedirectToAction("ManageCase", new { id = hearing.CaseId });
+                }
+
+                // Conflict Check (excluding self)
+                bool conflict = await _db.Hearings.Include(h => h.Case).AnyAsync(h => h.HearingDate == model.HearingDate && h.Id != model.Id && (h.Case.LawyerId == userId || h.Case.ClientId == hearing.Case.ClientId));
+                if (conflict)
+                {
+                    ModelState.AddModelError("HearingDate", "Scheduling Conflict: Busy at this time.");
+                    return View(model);
+                }
+
+                hearing.HearingDate = model.HearingDate;
+                hearing.CourtName = model.CourtName;
+                hearing.Notes = model.Notes;
+
+                _db.Hearings.Update(hearing);
+                await _db.SaveChangesAsync();
+
+                await _notificationService.NotifyUserAsync(hearing.Case.ClientId, "Hearing Updated", $"Hearing updated to {model.HearingDate:g}.");
+                TempData["msg"] = "Hearing updated.";
+                return RedirectToAction("ManageCase", new { id = hearing.CaseId });
             }
-            // -----------------------------
-
-            hearing.HearingDate = model.HearingDate;
-            hearing.CourtName = model.CourtName;
-            hearing.Notes = model.Notes;
-
-            _db.Hearings.Update(hearing);
-            await _db.SaveChangesAsync();
-
-            await _notificationService.NotifyUserAsync(hearing.Case.ClientId, "Hearing Updated", $"Hearing updated to {model.HearingDate:g}.");
-            TempData["msg"] = "Hearing updated successfully.";
-
-            return RedirectToAction("ManageCase", new { id = hearing.CaseId });
+            return View(model);
         }
 
-        // 9. DELETE HEARING
+        // 9. DELETE HEARING - NEW: Block if Closed
         [HttpPost]
         public async Task<IActionResult> DeleteHearing(int id)
         {
@@ -259,11 +236,17 @@ namespace LawFirmManagement.Controllers
             var caseObj = await _db.Cases.FindAsync(hearing.CaseId);
             if (caseObj == null || caseObj.LawyerId != userId) return NotFound("Access Denied");
 
+            // --- CHECK: IS CASE CLOSED? ---
+            if (caseObj.Status == CaseStatus.Closed)
+            {
+                TempData["error"] = "Cannot delete hearing. This case is CLOSED.";
+                return RedirectToAction("ManageCase", new { id = hearing.CaseId });
+            }
+
             _db.Hearings.Remove(hearing);
             await _db.SaveChangesAsync();
 
             await _notificationService.NotifyUserAsync(caseObj.ClientId, "Hearing Cancelled", $"The hearing on {hearing.HearingDate:d} was cancelled.");
-
             TempData["msg"] = "Hearing deleted.";
             return RedirectToAction("ManageCase", new { id = hearing.CaseId });
         }
@@ -275,7 +258,7 @@ namespace LawFirmManagement.Controllers
             var caseObj = await _db.Cases.FindAsync(caseId);
             if (caseObj != null && caseObj.Status == CaseStatus.Closed)
             {
-                TempData["error"] = "Cannot upload documents. Case is CLOSED.";
+                TempData["error"] = "Cannot upload. Case is CLOSED.";
                 return RedirectToAction("ManageCase", new { id = caseId });
             }
 
@@ -284,14 +267,11 @@ namespace LawFirmManagement.Controllers
                 var fileName = Guid.NewGuid().ToString() + "_" + Path.GetFileName(file.FileName);
                 var uploadPath = Path.Combine(_environment.WebRootPath, "documents");
                 if (!Directory.Exists(uploadPath)) Directory.CreateDirectory(uploadPath);
-
                 using (var stream = new FileStream(Path.Combine(uploadPath, fileName), FileMode.Create)) { await file.CopyToAsync(stream); }
 
                 _db.CaseDocuments.Add(new CaseDocument { CaseId = caseId, FileName = file.FileName, FilePath = "/documents/" + fileName, UploadedBy = User.Identity?.Name });
                 await _db.SaveChangesAsync();
-
                 if (caseObj != null) await _notificationService.NotifyUserAsync(caseObj.ClientId, "Document Uploaded", $"New file: {file.FileName}");
-
                 TempData["msg"] = "Document uploaded.";
             }
             return RedirectToAction("ManageCase", new { id = caseId });
